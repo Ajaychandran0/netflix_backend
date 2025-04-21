@@ -1,0 +1,34 @@
+version: '3.9'
+services:
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=supersecret
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  postgres:
+    image: postgres:13
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: netflix_clone
+    ports:
+      - "5432:5432"
+    volumes:
+      - netflix_pgdata:/var/lib/postgresql/data
+
+volumes:
+  netflix_pgdata:
