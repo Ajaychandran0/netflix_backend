@@ -5,7 +5,7 @@ static client: ReturnType<typeof createClient>;
 
   static init() {
     this.client = createClient({
-      url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`
+      url: `redis://redis:${process.env.REDIS_PORT}`
     });
 
     this.client.connect().then(() => {
