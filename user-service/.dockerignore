@@ -1,0 +1,19 @@
+# Ignore node_modules and environment files
+node_modules
+npm-debug.log
+.env
+
+dist
+build
+
+# Ignore Docker-related files
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Ignore log files
+*.log
+
+# Ignore git-related files
+.git
+.gitignore

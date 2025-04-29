@@ -1,25 +1,20 @@
 version: '3.9'
 services:
-
-  api-gateway:
-    build: ./api-gateway
-    ports:
-      - "8080:8080"
-    environment:
-      - PORT=8080
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - JWT_SECRET=supersecret
-    depends_on:
-      - redis
-
+  # ------------------------
+  # Redis
+  # ------------------------
   redis:
     image: redis:alpine
+    container_name: redis
     ports:
       - "6379:6379"
 
+  # ------------------------
+  # Postgres
+  # ------------------------
   postgres:
     image: postgres:13
+    container_name: postgres
     restart: always
     environment:
       POSTGRES_USER: user
@@ -28,7 +23,52 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - netflix_pgdata:/var/lib/postgresql/data
+      - netflix_pgdata:/var/lib/postgresql/data # Persist data in case of container restart
+
+  # ------------------------
+  # User Service
+  # ------------------------
+  user-service:
+    container_name: user-service
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+      target: ${DOCKER_TARGET:-dev} # 'dev' by default, can switch with 'prod'
+    ports:
+      - "3001:3001" # Port mapping
+    volumes:
+      - ./user-service:/app # For live coding in dev mode
+      - /app/node_modules # Ensuring node_modules are properly handled (keep it isolated from host node_modules)
+      # docker-compose exec user-service npm install bcrypt (to install bcrypt in the container)
+
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=3001
+      - DATABASE_URL=postgres://user:pass@postgres:5432/netflix_clone
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  # ------------------------
+  # API Gateway
+  # ------------------------
+  api-gateway:
+    container_name: api-gateway
+    build: ./api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=supersecret
+      - USER_SERVICE_URL=http://user-service:3001 # URL of user-service in the container network
+    depends_on:
+      - redis
+      - postgres
+      - user-service # Ensure user-service is available before api-gateway starts
 
 volumes:
   netflix_pgdata:
+    driver: local # Make sure data is persisted

@@ -1,0 +1,13 @@
+// prisma/schema/user.prisma
+
+model User {
+  id                  String             @id @default(uuid())
+  email               String             @unique
+  password            String
+  role                Int
+  subscriptionPlanId  Int
+  activeDevicesCount  Int                 @default(0)
+  subscriptionPlan    SubscriptionPlan   @relation(fields: [subscriptionPlanId], references: [id])
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+}
