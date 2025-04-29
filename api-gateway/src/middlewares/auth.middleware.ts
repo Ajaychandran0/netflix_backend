@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { logger } from '../config/logger';
 
 export function AuthMiddleware(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
@@ -9,6 +10,6 @@ export function AuthMiddleware(req: Request, res: Response, next: NextFunction) 
 
   // Here you would validate the JWT token or API key
   // For now just log and continue
-  console.log('Auth Middleware passed');
+  logger.info('Auth Middleware passed');
   next();
 }

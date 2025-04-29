@@ -1,8 +1,7 @@
 import { App } from './app';
-import dotenv from 'dotenv';
+import { env } from './config/env';
 
-dotenv.config();
-const PORT = process.env.PORT || 8080;
+const PORT = env.API_GATEWAY_PORT || 3000;
 
 const app = new App();
 app.listen(PORT);

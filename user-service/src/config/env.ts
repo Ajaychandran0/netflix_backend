@@ -9,7 +9,7 @@ const required = (value: string | undefined, name: string): string => {
 };
 
 export const config = {
-  PORT: parseInt(required(process.env.PORT, 'PORT')),
+  USER_SERVICE_URL: parseInt(required(process.env.USER_SERVICE_URL, 'USER_SERVICE_URL')),
   DATABASE_URL: required(process.env.DATABASE_URL, 'DATABASE_URL'),
   JWT_SECRET: required(process.env.JWT_SECRET, 'JWT_SECRET'),
   REDIS_URL: required(process.env.REDIS_URL, 'REDIS_URL'),

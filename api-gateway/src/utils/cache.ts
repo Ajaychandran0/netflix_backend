@@ -1,16 +1,20 @@
 import { createClient } from 'redis';
+import { env } from '../config/env';
+import { logger } from '../config/logger';
 
 export class RedisClient {
-static client: ReturnType<typeof createClient>;
+  static client: ReturnType<typeof createClient>;
 
   static init() {
     this.client = createClient({
-      url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`
+      url: `redis://${env.REDIS_HOST}:${env.REDIS_PORT}`
     });
 
     this.client.connect().then(() => {
-      console.log('🔌 Connected to Redis');
-    }).catch(console.error);
+      logger.info('🔌 Connected to Redis');
+    }).catch((err) => {
+      logger.error('❌ Error connecting to Redis:', err);
+    });
   }
 
   static async get(key: string) {

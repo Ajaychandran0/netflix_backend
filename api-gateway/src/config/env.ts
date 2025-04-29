@@ -1,19 +1,32 @@
-// api-gateway/src/config/env.ts
-
 import dotenv from 'dotenv';
+import { z } from 'zod';
+
+// Load environment variables from .env file
 dotenv.config();
 
-const required = (value: string | undefined, name: string): string => {
-  if (!value) throw new Error(`Missing required env var: ${name}`);
-  return value;
-};
+// Define schema for environment variables
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  API_GATEWAY_PORT: z.string().transform(val => Number(val)).refine(p => !isNaN(p) && p > 0, {
+    message: 'API_GATEWAY_PORT must be a positive number',
+  }),
+  REDIS_PORT: z.string().transform(val => Number(val)).refine(p => !isNaN(p) && p > 0, {
+    message: 'REDIS_PORT must be a positive number',
+  }),
+  JWT_SECRET: z.string().min(10, 'JWT_SECRET must be at least 10 characters'),
+  USER_SERVICE_URL: z.string().url(),
+  REDIS_HOST: z.string().min(1, 'REDIS_HOST is required')
+});
 
-export const env = {
-  PORT: parseInt(required(process.env.PORT, 'PORT')),
-  JWT_SECRET: required(process.env.JWT_SECRET, 'JWT_SECRET'),
-  USER_SERVICE_URL: required(process.env.USER_SERVICE_URL, 'USER_SERVICE_URL'),
-  AUTH_SERVICE_URL: required(process.env.AUTH_SERVICE_URL, 'AUTH_SERVICE_URL'),
-  CONTENT_SERVICE_URL: required(process.env.CONTENT_SERVICE_URL, 'CONTENT_SERVICE_URL'),
-  REDIS_URL: required(process.env.REDIS_URL, 'REDIS_URL'),
-  API_KEY: required(process.env.API_KEY, 'API_KEY'), // optional if using API key validation between services
-};
+// Parse and validate the environment variables
+const _env = envSchema.safeParse(process.env);
+
+console.log(_env, "env data")
+if (!_env.success) {
+  console.error('❌ Invalid environment variables:\n', _env.error.format());
+  process.exit(1); // Exit the process if environment variables are invalid
+}
+
+
+// Export validated environment variables
+export const env = _env.data;

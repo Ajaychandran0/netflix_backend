@@ -1,7 +1,7 @@
 # Ignore node_modules and environment files
 node_modules
 npm-debug.log
-.env
+.env*
 
 dist
 build
