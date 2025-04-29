@@ -21,7 +21,6 @@ const envSchema = z.object({
 // Parse and validate the environment variables
 const _env = envSchema.safeParse(process.env);
 
-console.log(_env, "env data")
 if (!_env.success) {
   console.error('❌ Invalid environment variables:\n', _env.error.format());
   process.exit(1); // Exit the process if environment variables are invalid

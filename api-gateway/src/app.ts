@@ -1,12 +1,16 @@
 import express, { Application } from 'express';
-import { router } from './routes';
-import { AuthMiddleware } from './middlewares/auth.middleware';
-import { RedisClient } from './utils/cache';
-import { logger } from './config/logger';
-import cors from 'cors';
+import { urlencoded } from 'body-parser';
 import compression from 'compression';
 import helmet from 'helmet';
+import cors from 'cors';
+
+// Import custom modules
+import { RedisClient } from './utils/cache';
+import { logger } from './config/logger';
 import { httpLogger } from './config/httpLogger';
+
+// Import routes
+import { router } from './routes';
 
 
 export class App {
@@ -33,6 +37,9 @@ export class App {
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
       allowedHeaders: 'Content-Type, Authorization',
     }));
+
+    // Parse URL-encoded bodies (for form submissions)
+    this.app.use(urlencoded({ extended: true }));
 
   }
 

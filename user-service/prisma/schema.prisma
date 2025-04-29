@@ -1,5 +1,3 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,25 +7,29 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model User {
-  id                  String             @id @default(uuid())
-  email               String             @unique
-  password            String
-  role                Int
-  subscriptionPlanId  Int
-  activeDevicesCount  Int                 @default(0)
-  subscriptionPlan    SubscriptionPlan   @relation(fields: [subscriptionPlanId], references: [id])
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
+  id                 String           @id @default(uuid())
+  email              String           @unique
+  password           String
+  role               Role             @default(USER)
+  subscriptionPlanId Int
+  activeDevicesCount Int              @default(0)
+  subscriptionPlan   SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 }
 
 model SubscriptionPlan {
-  id             Int      @id @default(autoincrement())
-  name           String
-  maxDevices     Int
-  maxResolution  String
-  users          User[]   // One subscription can have many users
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  name          String
+  maxDevices    Int
+  maxResolution String
+  users         User[] // One subscription can have many users
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+enum Role {
+  USER
+  ADMIN
 }

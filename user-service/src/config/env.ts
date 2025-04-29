@@ -1,16 +1,30 @@
-// user-service/src/config/env.ts
-
 import dotenv from 'dotenv';
+import { z } from 'zod';
+
 dotenv.config();
 
-const required = (value: string | undefined, name: string): string => {
-  if (!value) throw new Error(`Missing required env var: ${name}`);
-  return value;
-};
 
-export const config = {
-  USER_SERVICE_URL: parseInt(required(process.env.USER_SERVICE_URL, 'USER_SERVICE_URL')),
-  DATABASE_URL: required(process.env.DATABASE_URL, 'DATABASE_URL'),
-  JWT_SECRET: required(process.env.JWT_SECRET, 'JWT_SECRET'),
-  REDIS_URL: required(process.env.REDIS_URL, 'REDIS_URL'),
-};
+// Define schema for environment variables
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  USER_SERVICE_PORT: z.string().transform(val => Number(val)).refine(p => !isNaN(p) && p > 0, {
+    message: 'USER_SERVICE_PORT must be a positive number',
+  }),
+  REDIS_PORT: z.string().transform(val => Number(val)).refine(p => !isNaN(p) && p > 0, {
+    message: 'REDIS_PORT must be a positive number',
+  }),
+  JWT_SECRET: z.string().min(10, 'JWT_SECRET must be at least 10 characters'),
+  REDIS_HOST: z.string().min(1, 'REDIS_HOST is required')
+});
+
+// Parse and validate the environment variables
+const _env = envSchema.safeParse(process.env);
+
+if (!_env.success) {
+  console.error('❌ Invalid environment variables:\n', _env.error.format());
+  process.exit(1); // Exit the process if environment variables are invalid
+}
+
+
+// Export validated environment variables
+export const env = _env.data;
