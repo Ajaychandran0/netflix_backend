@@ -3,25 +3,26 @@ services:
   # ------------------------
   # Redis
   # ------------------------
+
   redis:
     image: redis:alpine
     container_name: redis
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT}:${REDIS_PORT}"
 
   # ------------------------
   # Postgres
   # ------------------------
   postgres:
-    image: postgres:13
+    image: postgres:16.2
     container_name: postgres
     restart: always
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: pass
-      POSTGRES_DB: netflix_clone
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     volumes:
       - netflix_pgdata:/var/lib/postgresql/data # Persist data in case of container restart
 
@@ -35,16 +36,15 @@ services:
       dockerfile: Dockerfile
       target: ${DOCKER_TARGET:-dev} # 'dev' by default, can switch with 'prod'
     ports:
-      - "3001:3001" # Port mapping
+      - "${USER_SERVICE_PORT}:${USER_SERVICE_PORT}"
     volumes:
       - ./user-service:/app # For live coding in dev mode
       - /app/node_modules # Ensuring node_modules are properly handled (keep it isolated from host node_modules)
       # docker-compose exec user-service npm install bcrypt (to install bcrypt in the container)
 
-    environment:
-      - NODE_ENV=${NODE_ENV:-development}
-      - PORT=3001
-      - DATABASE_URL=postgres://user:pass@postgres:5432/netflix_clone
+    env_file:
+      - ./api-gateway/.env 
+   
     depends_on:
       - postgres
       - redis
@@ -57,13 +57,9 @@ services:
     container_name: api-gateway
     build: ./api-gateway
     ports:
-      - "8080:8080"
-    environment:
-      - PORT=8080
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - JWT_SECRET=supersecret
-      - USER_SERVICE_URL=http://user-service:3001 # URL of user-service in the container network
+      - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
+    env_file:
+      - ./api-gateway/.env 
     depends_on:
       - redis
       - postgres
