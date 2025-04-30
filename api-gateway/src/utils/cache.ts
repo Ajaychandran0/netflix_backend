@@ -17,15 +17,16 @@ export class RedisClient {
     });
   }
 
-  static async get(key: string) {
-    return await this.client.get(key);
+  static async get<T = any>(key: string): Promise<T | null> {
+    const value = await this.client.get(key);
+    return value ? JSON.parse(value) as T : null;
   }
 
-  static async set(key: string, value: string, ttl = 3600) {
-    await this.client.setEx(key, ttl, value);
+  static async set<T>(key: string, value: T, ttl = 3600) {
+    await this.client.setEx(key, ttl, JSON.stringify(value));
   }
 
-  static async del(key: string) {
-    await this.client.del(key);
+  static async del(key: string): Promise<number> {
+    return await this.client.del(key);
   }
 }

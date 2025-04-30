@@ -1,13 +1,15 @@
-import express, { Application } from 'express';
+import express, { Application, NextFunction, Request, Response } from 'express';
+import 'express-async-errors';
 import { urlencoded } from 'body-parser';
 import compression from 'compression';
 import helmet from 'helmet';
 import cors from 'cors';
 
 // Import custom modules
-import { httpLogger } from './config/httpLogger';
-import { RedisClient } from './utils/cache';
-import { logger } from './config/logger';
+import { errorHandler } from './core/middlewares/errorHandler';
+import { httpLogger } from './core/config/httpLogger';
+import { RedisClient } from './core/utils/cache';
+import { logger } from './core/config/logger';
 
 // Import routes
 import authRoutes from './routes/auth.routes';
@@ -20,6 +22,7 @@ export class App {
     this.app = express();
     this.config();
     this.routes();
+    this.handleErrors();
   }
 
   // Configure middleware for the app
@@ -45,9 +48,20 @@ export class App {
 
   // Configure routes for the app
   private routes(): void {
+    this.app.get("/", (req: Request, res: Response) => {
+      res.send({ code: "SUCCESS", message: 'User Service' });
+    })
     this.app.use('/api/auth', authRoutes);
     // this.app.use('/api/users', userRoutes);
+
   }
+
+  private handleErrors(): void {
+    this.app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
+      errorHandler(err, req, res, next);
+    });
+  }
+
 
   // Start the app
   public listen(port: number): void {

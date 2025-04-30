@@ -1,15 +1,30 @@
 import { Request, Response, NextFunction } from 'express';
-import { logger } from '../config/logger';
+import { verifyToken } from '../utils/jwt';
 
-export function AuthMiddleware(req: Request, res: Response, next: NextFunction) {
+export interface AuthenticatedRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    role: number;
+  };
+}
+
+export function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
-
-  if (!authHeader) {
-    return res.status(401).json({ message: 'Missing auth header' });
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Unauthorized' });
   }
 
-  // Here you would validate the JWT token or API key
-  // For now just log and continue
-  logger.info('Auth Middleware passed');
-  next();
+  try {
+    const token = authHeader.split(' ')[1];
+    const payload = verifyToken(token);
+    req.user = {
+      userId: payload.userId,
+      email: payload.email,
+      role: payload.role,
+    };
+    next();
+  } catch (error) {
+    res.status(401).json({ message: 'Invalid token' });
+  }
 }

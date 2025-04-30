@@ -1,11 +1,10 @@
-import { Router } from 'express';
+// src/routes/authRoutes.ts
+import express from 'express';
+import { AuthController } from '../controllers/auth.controller';
 
-const router = Router();
+const router = express.Router();
 
-router.get('/health', (_req, res) => {
-    res.send({ status: 'API Gateway running' });
-});
+router.post('/register', AuthController.register);
+router.post('/login', AuthController.login);
 
-// Later: /home, /login, etc.
-
-export default router
+export default router;

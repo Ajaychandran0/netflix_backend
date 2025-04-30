@@ -1,0 +1,9 @@
+// utils/errors/UnauthorizedError.ts
+import { AppError } from './AppError'
+import { ErrorCodes } from './ErrorCodes';
+
+export class UnauthorizedError extends AppError {
+  constructor(message = 'Unauthorized', code = ErrorCodes.UNAUTHORIZED) {
+    super(message, 401, code);
+  }
+}

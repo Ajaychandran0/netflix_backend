@@ -12,7 +12,8 @@
       "removeComments": true,
       "baseUrl": "./src",
       "paths": {
-        "@/*": ["./*"]
+        "@/*": ["./*"],
+        "@core/*": ["core/*"],
       }
     },
     "include": ["src/**/*.ts", "src/**/*.d.ts"],
