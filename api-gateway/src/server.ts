@@ -1,5 +1,5 @@
 import { App } from './app';
-import { env } from './config/env';
+import { env } from '@core/config/env';
 
 const PORT = env.API_GATEWAY_PORT || 3000;
 

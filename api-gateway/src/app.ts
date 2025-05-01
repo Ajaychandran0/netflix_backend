@@ -1,17 +1,19 @@
-import express, { Application } from 'express';
+import express, { Application, NextFunction, Request, Response } from 'express';
+import 'express-async-errors'; 
 import { urlencoded } from 'body-parser';
 import compression from 'compression';
 import helmet from 'helmet';
 import cors from 'cors';
 
 // Import custom modules
-import { RedisClient } from './utils/cache';
-import { logger } from './config/logger';
-import { httpLogger } from './config/httpLogger';
+import { RedisClient } from './core/utils/cache';
+import { logger } from './core/config/logger';
+import { httpLogger } from './core/config/httpLogger';
 
 // Import routes
-import { router } from './routes';
-
+import authRoutes from './routes/auth.routes';
+import userRoutes from './routes/user.routes';
+import { errorHandler } from './core/middlewares/errorHandler';
 
 export class App {
   public app: Application;
@@ -20,6 +22,7 @@ export class App {
     this.app = express();
     this.config();
     this.routes();
+    this.handleErrors();
   }
 
   private config(): void {
@@ -44,7 +47,18 @@ export class App {
   }
 
   private routes(): void {
-    this.app.use('/', router);
+    this.app.use('/api/auth', authRoutes);
+    this.app.use('/api/users', userRoutes);
+
+    this.app.get("/", (req: Request, res: Response) => {
+      res.send({ code: "SUCCESS", message: 'API Gateway running' });
+    })
+  }
+
+  private handleErrors(): void {
+    this.app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
+      errorHandler(err, req, res, next);
+    });
   }
 
   public listen(port: string | number): void {

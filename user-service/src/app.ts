@@ -49,7 +49,7 @@ export class App {
   // Configure routes for the app
   private routes(): void {
     this.app.get("/", (req: Request, res: Response) => {
-      res.send({ code: "SUCCESS", message: 'User Service' });
+      res.send({ code: "SUCCESS", message: 'User Service running' });
     })
     this.app.use('/api/auth', authRoutes);
     // this.app.use('/api/users', userRoutes);

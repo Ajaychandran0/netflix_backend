@@ -9,10 +9,11 @@
       "skipLibCheck": true,
       "forceConsistentCasingInFileNames": true,
       "removeComments": true,
-      "typeRoots": ["./node_modules/@types", "./src/types"],
+      "typeRoots": ["./node_modules/@types", "src/core/types"],
       "baseUrl": "./src",
       "paths": {
-        "@/*": ["./*"]
+        "@/*": ["./*"],
+        "@core/*": ["core/*"],
       }
     }, 
     "include": ["src/**/*.ts", "src/**/*.d.ts"],

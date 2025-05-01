@@ -36,7 +36,7 @@ export const httpLogger: HttpLogger<IncomingMessage, ServerResponse> = pinoHttp(
                 ? {
                     method: req.method,
                     url: req.url,
-                    headers: req.headers,
+                    // headers: req.headers,
                     id: req.id,
                 }
                 : {

@@ -35,8 +35,8 @@ services:
       context: ./user-service
       dockerfile: Dockerfile
       target: ${DOCKER_TARGET:-dev} # 'dev' by default, can switch with 'prod'
-    ports:
-      - "${USER_SERVICE_PORT}:${USER_SERVICE_PORT}"
+    # ports:
+    #   - "${USER_SERVICE_PORT}:${USER_SERVICE_PORT}"
     volumes:
       - ./user-service:/app # For live coding in dev mode
       - /app/node_modules # Ensuring node_modules are properly handled (keep it isolated from host node_modules)
@@ -55,9 +55,16 @@ services:
   # ------------------------
   api-gateway:
     container_name: api-gateway
-    build: ./api-gateway
+    build: 
+      context: ./api-gateway
+      dockerfile: Dockerfile
+      target: ${DOCKER_TARGET:-dev} # 'dev' by default, can switch with 'prod'
     ports:
       - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
+    volumes:
+      - ./api-gateway:/app # For live coding in dev mode
+      - /app/node_modules 
+
     env_file:
       - ./api-gateway/.env 
     depends_on:

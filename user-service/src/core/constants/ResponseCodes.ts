@@ -1,0 +1,28 @@
+export enum ErrorCodes {
+    USER_NOT_FOUND =  'USER_NOT_FOUND',
+    INVALID_INPUT =  'INVALID_INPUT',
+    USER_ALREADY_EXISTS =  'USER_ALREADY_EXISTS',
+    INVALID_CREDENTIALS =  'INVALID_CREDENTIALS',
+    
+    // Common HTTP error codes
+    BAD_REQUEST =  'BAD_REQUEST',
+    UNAUTHORIZED =  'UNAUTHORIZED',
+    FORBIDDEN =  'FORBIDDEN',
+    NOT_FOUND =  'NOT_FOUND',
+    UNPROCESSABLE_ENTITY =  'UNPROCESSABLE_ENTITY',
+    TOO_MANY_REQUESTS =  'TOO_MANY_REQUESTS',
+    INTERNAL_SERVER_ERROR =  'INTERNAL_SERVER_ERROR',
+  }
+  
+
+export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
+
+export enum SuccessCodes {
+  USER_CREATED = 'USER_CREATED',
+  USER_UPDATED = 'USER_UPDATED',
+  USER_DELETED = 'USER_DELETED',
+  USER_LOGGED_IN = 'USER_LOGGED_IN',
+  USER_LOGGED_OUT = 'USER_LOGGED_OUT',
+}
+
+export type SuccessCode = (typeof SuccessCodes)[keyof typeof SuccessCodes];

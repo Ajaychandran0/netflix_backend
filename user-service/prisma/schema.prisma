@@ -8,22 +8,28 @@ datasource db {
 }
 
 model User {
-  id                 String           @id @default(uuid())
-  email              String           @unique
-  password           String
-  role               Role             @default(USER)
-  subscriptionPlanId Int
-  activeDevicesCount Int              @default(0)
-  subscriptionPlan   SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
+  id                  String           @id @default(uuid()) @db.VarChar(255)
+  email               String           @unique @db.VarChar(255)
+  emailVerified       Boolean          @default(false)
+  firstName           String?           @db.VarChar(255)
+  lastName            String?          @db.VarChar(255)
+  phoneNumber         String?          @db.VarChar(20)
+  phoneNumberVerified Boolean          @default(false)
+  password            String           @db.VarChar(255)
+  role                Role             @default(USER)
+  activeDevicesCount  Int              @default(0)
+  subscriptionPlan    SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id])
+  subscriptionPlanId  String?           @db.VarChar(255)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
 }
 
 model SubscriptionPlan {
-  id            Int      @id @default(autoincrement())
-  name          String
-  maxDevices    Int
-  maxResolution String
+  id            String   @id @default(uuid()) @db.VarChar(255)
+  price         Decimal  @db.Decimal(10, 2)
+  name          String  @db.VarChar(255)
+  maxDevices    Int 
+  maxResolution String @db.VarChar(10)
   users         User[] // One subscription can have many users
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

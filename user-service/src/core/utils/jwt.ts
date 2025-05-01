@@ -4,7 +4,7 @@ import { env } from '../config/env';
 interface Payload {
   userId: string;
   email: string;
-  role: number;
+  role: string;
 }
 
 export const generateToken = (
