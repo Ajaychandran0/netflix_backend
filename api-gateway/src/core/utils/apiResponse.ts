@@ -22,6 +22,15 @@ interface ErrorResponseOptions {
   enableLogging?: boolean;
 }
 
+interface APIResponse {
+  success: boolean;
+  message: string;
+  code?: string;
+  localeMessageKey?: string;
+  data?: unknown;
+  errors?: unknown;
+}
+
 export const apiResponse = ({
   res,
   message,
@@ -31,7 +40,7 @@ export const apiResponse = ({
   localeMessageKey,
   enableLogging = false,
 }: SuccessResponseOptions) => {
-  const response = {
+  const response:APIResponse = {
     success: true,
     message,
     code,
@@ -55,12 +64,17 @@ export const apiError = ({
   localeMessageKey,
   enableLogging = true,
 }: ErrorResponseOptions) => {
-  const response = {
+  const response:APIResponse = {
     success: false,
     message,
     code,
     localeMessageKey,
   };
+
+  const validationErrors = (error as any).cause?.response?.data?.errors
+  if(validationErrors){
+    response.errors = validationErrors
+  }
 
   if (enableLogging) {
     const isExpectedError = statusCode < 500; // Anything < 500 is client-related

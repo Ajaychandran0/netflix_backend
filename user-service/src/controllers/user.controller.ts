@@ -28,18 +28,31 @@ export class UserController {
     }
 
     static async updateProfile(req: Request, res: Response): Promise<void> {
-        try {
-            const userId = req.params.id;
-            const updatedData = req.body;
-            // Simulate updating user profile in database
-            const updatedProfile = {
-                id: userId,
-                ...updatedData,
-            };
-            res.status(200).json({ message: "Profile updated successfully", updatedProfile });
-        } catch (error) {
-            res.status(500).json({ message: "Failed to update user profile", error });
+        const user = await prisma.user.findUnique({
+            where: { id: req.user?.id }
+        })
+
+        if (!user) {
+            throw new UserNotFoundError()
         }
+
+        const updatedUser = await prisma.user.update({
+            where: { id: req.user?.id },
+            data: {
+                firstName: req.body.firstName ?? user.firstName,
+                lastName: req.body.lastName ?? user.lastName,
+            }
+        })
+
+        const { password, ...safeUser } = updatedUser
+
+        apiResponse({
+            res,
+            message: "User profile updated successfully",
+            data: safeUser,
+            code: SuccessCodes.USER_UPDATED,
+        })
+
     }
 
 }

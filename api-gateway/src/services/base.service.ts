@@ -13,17 +13,34 @@ class BaseService {
         path: string
     ) => {
         return asyncErrorHandler(async (req: Request, res: Response, next: NextFunction) => {
-            console.log(req.user, "user is ddddd i n api-gateway");
             const client = serviceMap[serviceName];
+
+            // Extract user information from req.user
+            const userHeaders = req.user
+                ? {
+                    'x-user-id': req.user.id,
+                    'x-user-email': req.user.email,
+                    'x-user-role': req.user.role,
+                }
+                : {};
+
+            // Merge original headers with user headers
+            const headers = {
+                ...req.headers,
+                ...userHeaders,
+            };
 
             let axiosResponse;
 
             if (method === 'get' || method === 'delete') {
                 axiosResponse = await client[method](path, {
                     params: req.query,
+                    headers
                 });
             } else {
-                axiosResponse = await client[method](path, req.body);
+                axiosResponse = await client[method](path, req.body, {
+                    headers
+                });
             }
 
             const { data } = axiosResponse;
@@ -47,6 +64,7 @@ class BaseService {
         options: {
             data?: any,
             query?: any,
+            headers?: any,
         } = {}
     ) => {
         try {
@@ -54,6 +72,7 @@ class BaseService {
 
             const config: any = {
                 params: options.query,
+                headers: options.headers
             };
 
             const axiosMethod = method === 'get' || method === 'delete'

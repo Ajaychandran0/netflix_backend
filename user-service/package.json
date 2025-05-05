@@ -21,6 +21,7 @@
     "dotenv": "^16.0.1",
     "express": "^4.21.2",
     "express-async-errors": "^3.1.1",
+    "express-validator": "^7.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^8.5.1",
     "pino-http": "^10.4.0",
@@ -33,13 +34,13 @@
     "zod": "^3.24.3"
   },
   "devDependencies": {
-    "prisma": "^4.16.2",
     "@types/bcrypt": "^5.0.2",
     "@types/compression": "^1.7.5",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
     "@types/jsonwebtoken": "^9.0.9",
     "nodemon": "^2.0.15",
+    "prisma": "^4.16.2",
     "prisma-import": "^1.0.5"
   }
 }

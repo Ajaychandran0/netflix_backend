@@ -19,6 +19,16 @@ interface ErrorResponseOptions {
   code?: string;
   localeMessageKey?: string;
   enableLogging?: boolean;
+  isValidationError?: boolean;
+}
+
+interface APIResponse {
+  success: boolean;
+  message: string;
+  code?: string;
+  localeMessageKey?: string;
+  data?: unknown;
+  errors?: unknown;
 }
 
 export const apiResponse = ({
@@ -30,7 +40,7 @@ export const apiResponse = ({
   localeMessageKey,
   enableLogging = false,
 }: SuccessResponseOptions) => {
-  const response = {
+  const response: APIResponse = {
     success: true,
     message,
     code,
@@ -53,16 +63,22 @@ export const apiError = ({
   code,
   localeMessageKey,
   enableLogging = true,
+  isValidationError = false,
 }: ErrorResponseOptions) => {
-  const response = {
+  const response: APIResponse = {
     success: false,
     message,
     code,
     localeMessageKey,
   };
 
+  if (isValidationError) {
+    response.errors = error;
+  }
+
   if (enableLogging) {
-    logger.error(`[${statusCode}] ${message} ${code ? `| Code: ${code}` : ''}`, error);
+    logger.error(`[${statusCode}] ${message} ${code ? `| Code: ${code}` : ''}`);
+    logger.error(error)
   }
 
   return res.status(statusCode).json(response);
