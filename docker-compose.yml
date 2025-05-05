@@ -7,8 +7,8 @@ services:
   redis:
     image: redis:alpine
     container_name: redis
-    ports:
-      - "${REDIS_PORT}:${REDIS_PORT}"
+    # ports:
+    #   - "${REDIS_PORT}:${REDIS_PORT}"
 
   # ------------------------
   # Postgres
@@ -43,12 +43,25 @@ services:
       # docker-compose exec user-service npm install bcrypt (to install bcrypt in the container)
 
     env_file:
-      - ./api-gateway/.env 
+      - ./user-service/.env 
    
     depends_on:
       - postgres
       - redis
-    restart: unless-stopped
+
+  # ------------------------
+  # Content Service
+  # ------------------------
+  # content-service:
+  #   build:
+  #     context: .
+  #     target: ${TARGET:-dev}
+  #   ports:
+  #     - "${CONTENT_SERVICE_PORT}:${CONTENT_SERVICE_PORT}"
+  #   volumes:
+  #     - .:/app  # for reload to work
+  #   env_file:
+  #     - ./content-service/.env
 
   # ------------------------
   # API Gateway
