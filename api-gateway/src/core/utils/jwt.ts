@@ -1,17 +1,13 @@
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
+import { UnauthorizedError } from '../exceptions/UnauthorizedError';
+import { AuthenticatedUser } from '../types/user';
 
 
-interface Payload {
-    userId: string;
-    email: string;
-    role: number;
-}
-
-export const verifyToken = (token: string): Payload => {
+export const verifyToken = (token: string): AuthenticatedUser => {
     try {
-        return jwt.verify(token, env.JWT_SECRET) as Payload;
+        return jwt.verify(token, env.JWT_SECRET) as AuthenticatedUser;
     } catch (error) {
-        throw new Error('Invalid or expired token');
+        throw new UnauthorizedError('Invalid or expired token');
     }
 };

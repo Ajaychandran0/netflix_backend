@@ -1,5 +1,5 @@
 import express, { Application, NextFunction, Request, Response } from 'express';
-import 'express-async-errors'; 
+import 'express-async-errors';
 import { urlencoded } from 'body-parser';
 import compression from 'compression';
 import helmet from 'helmet';
@@ -9,11 +9,8 @@ import cors from 'cors';
 import { RedisClient } from './core/utils/cache';
 import { logger } from './core/config/logger';
 import { httpLogger } from './core/config/httpLogger';
-
-// Import routes
-import authRoutes from './routes/auth.routes';
-import userRoutes from './routes/user.routes';
 import { errorHandler } from './core/middlewares/errorHandler';
+import appRoutes from './routes';
 
 export class App {
   public app: Application;
@@ -47,8 +44,7 @@ export class App {
   }
 
   private routes(): void {
-    this.app.use('/api/auth', authRoutes);
-    this.app.use('/api/users', userRoutes);
+    this.app.use('/api', appRoutes);
 
     this.app.get("/", (req: Request, res: Response) => {
       res.send({ code: "SUCCESS", message: 'API Gateway running' });

@@ -1,30 +1,27 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/jwt';
+import { UnauthorizedError } from '../exceptions/UnauthorizedError';
+import { ErrorCodes } from '../constants/ResponseCodes';
 
-export interface AuthenticatedRequest extends Request {
-  user?: {
-    userId: string;
-    email: string;
-    role: number;
-  };
-}
 
-export function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+export function authenticate(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Unauthorized' });
+    throw new UnauthorizedError()
   }
 
   try {
     const token = authHeader.split(' ')[1];
     const payload = verifyToken(token);
+
     req.user = {
-      userId: payload.userId,
+      id: payload.id,
       email: payload.email,
-      role: payload.role,
+      role: payload.role
     };
+
     next();
   } catch (error) {
-    res.status(401).json({ message: 'Invalid token' });
+    throw new UnauthorizedError('Invalid or expired token', ErrorCodes.INVALID_TOKEN);
   }
 }
