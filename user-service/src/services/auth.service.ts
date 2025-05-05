@@ -22,7 +22,7 @@ export class UserService {
       },
     })
 
-    const token = generateToken({ userId: user.id, email: user.email, role: user.role });
+    const token = generateToken({ id: user.id, email: user.email, role: user.role });
     return token;
   }
 
@@ -37,7 +37,7 @@ export class UserService {
       throw new UnauthorizedError(ResponseMessages.INVALID_CREDENTIALS, ErrorCodes.INVALID_CREDENTIALS);
     }
 
-    const token = generateToken({ userId: user.id, email: user.email, role: user.role });
+    const token = generateToken({ id: user.id, email: user.email, role: user.role });
     return token;
   }
 }

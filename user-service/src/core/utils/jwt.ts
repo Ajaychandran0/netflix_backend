@@ -1,14 +1,9 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { env } from '../config/env';
-
-interface Payload {
-  userId: string;
-  email: string;
-  role: string;
-}
+import { AuthenticatedUser } from '../types/user';
 
 export const generateToken = (
-  payload: Payload,
+  payload: AuthenticatedUser,
   options: SignOptions = { expiresIn: '1h' }
 ): string => {
   return jwt.sign(payload, env.JWT_SECRET, options);

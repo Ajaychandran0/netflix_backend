@@ -3,6 +3,9 @@
 # ------------------------------
 FROM node:20-alpine AS base
 
+# install openssl & build‑deps for Prisma
+RUN apk add --no-cache openssl openssl-dev
+
 # Set working directory
 WORKDIR /app
 
@@ -27,7 +30,7 @@ RUN npx prisma generate
 EXPOSE 3001
 
 # Command to run development server
-CMD ["npm", "run", "dev"]
+CMD ["sh", "-c", "npm run prisma:dbpush && npm run dev"]
 
 
 # ------------------------------

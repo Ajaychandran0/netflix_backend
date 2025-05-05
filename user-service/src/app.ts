@@ -10,10 +10,7 @@ import { errorHandler } from './core/middlewares/errorHandler';
 import { httpLogger } from './core/config/httpLogger';
 import { RedisClient } from './core/utils/cache';
 import { logger } from './core/config/logger';
-
-// Import routes
-import authRoutes from './routes/auth.routes';
-// import { userRoutes } from './routes/user.routes';
+import appRoutes from './routes';
 
 export class App {
   public app: Application;
@@ -51,9 +48,7 @@ export class App {
     this.app.get("/", (req: Request, res: Response) => {
       res.send({ code: "SUCCESS", message: 'User Service running' });
     })
-    this.app.use('/api/auth', authRoutes);
-    // this.app.use('/api/users', userRoutes);
-
+    this.app.use('/api', appRoutes);
   }
 
   private handleErrors(): void {
