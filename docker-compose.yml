@@ -52,16 +52,22 @@ services:
   # ------------------------
   # Content Service
   # ------------------------
-  # content-service:
-  #   build:
-  #     context: .
-  #     target: ${TARGET:-dev}
-  #   ports:
-  #     - "${CONTENT_SERVICE_PORT}:${CONTENT_SERVICE_PORT}"
-  #   volumes:
-  #     - .:/app  # for reload to work
-  #   env_file:
-  #     - ./content-service/.env
+  content-service:
+    container_name: content-service
+    build:
+      context: ./content-service
+      dockerfile: Dockerfile
+      # target: ${TARGET:-dev}
+    ports:
+      - "${CONTENT_SERVICE_PORT}:${CONTENT_SERVICE_PORT}"
+    volumes:
+      - ./content-service:/app  # for reload to work
+      - /app/venv
+    env_file:
+      - ./content-service/.env
+    depends_on:
+      - postgres
+      - redis
 
   # ------------------------
   # API Gateway

@@ -10,24 +10,22 @@ WORKDIR /app
 
 # Install system dependencies
 RUN apt-get update \
-  && apt-get install -y build-essential curl netcat \
+  # && apt-get install -y build-essential curl netcat \
   && apt-get clean
 
 # Install pipenv or poetry if you're using it (optional)
 
 # Copy dependency files
-COPY pyproject.toml poetry.lock* requirements.txt* /app/
+COPY ./requirements.txt /app/
 
 # Install Python dependencies
-RUN pip install --upgrade pip \
-  && if [ -f "requirements.txt" ]; then pip install -r requirements.txt; fi \
-  && if [ -f "pyproject.toml" ]; then pip install .; fi
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # Copy application code
-COPY . /app
+COPY . /app/
 
 # Expose port (default FastAPI/uvicorn port)
-EXPOSE 8000
+EXPOSE 3002
 
 # Run the app
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "main.py"]

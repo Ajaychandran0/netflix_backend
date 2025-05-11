@@ -2,19 +2,28 @@ from fastapi import FastAPI
 from app.core.config.env import settings
 from app.core.middlewares.cors import add_middlewares
 from app.routes.docs import register_docs_routes
+from app.routes.v1.index import router
 
 def create_app() -> FastAPI:
     is_prod = settings.APP_ENV == "production"
-    app = FastAPI(
+    app:FastAPI = FastAPI(
         docs_url=None,
         redoc_url=None,
         openapi_url=None,
-        port=settings.CONTENT_SERVICE_PORT,
+        title="Content Service API",
+        description="API for managing content",
+        version="1.0.0",
     )
 
     add_middlewares(app)
 
     if not is_prod:
         register_docs_routes(app)
+        
+    @app.get("/")
+    async def root():
+        return {"message": "Welcome to the Content Service API"}
+    
+    app.include_router(router)
 
     return app
