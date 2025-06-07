@@ -35,7 +35,7 @@ export class App {
     // Enable CORS
     this.app.use(cors({
       origin: '*', // Replace with a more secure list of allowed origins
-      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
       allowedHeaders: 'Content-Type, Authorization',
     }));
 
