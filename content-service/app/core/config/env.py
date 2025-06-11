@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     API_DOCS_USER: str
     API_DOCS_PASS: str
     CONTENT_SERVICE_PORT: int = 3002
+    DATABASE_URL: str
     AWS_ACCESS_KEY_ID: str
     AWS_SECRET_ACCESS_KEY : str
     AWS_S3_ENDPOINT :str
