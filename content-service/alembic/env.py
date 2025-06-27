@@ -7,6 +7,7 @@ from sqlalchemy import create_engine
 from alembic import context
 from app.db.base import Base
 from app.db.models.video import Video
+from app.db.models.upload_session import UploadSession
 from app.core.config.env import settings
 
 SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL.replace("asyncpg", "psycopg2")

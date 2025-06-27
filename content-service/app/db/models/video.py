@@ -1,15 +1,17 @@
 import uuid
-from sqlalchemy import String, Text, Enum, Float, Column, DateTime, ForeignKey
+from sqlalchemy import String, Text, Enum, Float, Column, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from app.db.base import Base
 import enum
+
 
 class VideoStatus(str, enum.Enum):
     UPLOADING = "uploading"
     PROCESSING = "processing"
     COMPLETED = "completed"
     FAILED = "failed"
+
 
 class Video(Base):
     __tablename__ = "videos"

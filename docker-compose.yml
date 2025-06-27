@@ -26,6 +26,20 @@ services:
       - netflix_pgdata:/var/lib/postgresql/data # Persist data in case of container restart
       - ./docker-scripts:/docker-entrypoint-initdb.d
 
+    
+  minio:
+    image: minio/minio
+    container_name: minio
+    ports:
+      - "${MINIO_PORT}:${MINIO_PORT}"
+      - "${MINIO_CONSOLE_PORT}:${MINIO_CONSOLE_PORT}"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER} 
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":${MINIO_CONSOLE_PORT}"
+
   # ------------------------
   # User Service
   # ------------------------
@@ -68,6 +82,7 @@ services:
     depends_on:
       - postgres
       - redis
+      - minio 
 
   # ------------------------
   # API Gateway
@@ -89,8 +104,10 @@ services:
     depends_on:
       - redis
       - postgres
-      - user-service # Ensure user-service is available before api-gateway starts
+      - user-service
 
 volumes:
   netflix_pgdata:
+    driver: local # Make sure data is persisted
+  minio_data:
     driver: local # Make sure data is persisted

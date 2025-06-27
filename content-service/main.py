@@ -1,7 +1,12 @@
+import uvicorn
 from app.server import create_app
 from app.core.config.env import settings
-import uvicorn
+from app.core.config.logging import setup_logging
 
+# Initialize logging
+setup_logging()
+
+# Create the FastAPI application instance
 app = create_app()
 
 willReload = settings.APP_ENV != "production"

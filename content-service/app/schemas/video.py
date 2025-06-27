@@ -18,15 +18,18 @@ class VideoBase(BaseModel):
 class VideoCreate(VideoBase):
     pass  # Same fields as VideoBase
 
-class VideoOut(VideoBase):
+class VideoURL(VideoCreate):
     id: UUID
-    status: VideoStatus
+    presigned_url: Optional[str]
     upload_path: Optional[str]
+    status: VideoStatus
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+class VideoOut(VideoURL):
     hls_playlist_url: Optional[str]
     thumbnail_url: Optional[str]
     duration: Optional[float]
-    created_at: datetime
-    updated_at: Optional[datetime]
 
     class Config:
         orm_mode = True

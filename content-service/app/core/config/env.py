@@ -10,8 +10,10 @@ class Settings(BaseSettings):
     AWS_ACCESS_KEY_ID: str
     AWS_SECRET_ACCESS_KEY : str
     AWS_S3_ENDPOINT :str
+    AWS_S3_PUBLIC_ENDPOINT: str
     AWS_REGION:str
-    MINIO_TEMP_BUCKET:str
+    S3_TEMP_BUCKET:str
+    S3_VIDEO_BUCKET: str
 
     class Config:
         env_file = ".env"
