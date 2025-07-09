@@ -49,7 +49,7 @@ class S3UploadService:
 
     def complete_multipart_upload(self, object_name: str, upload_id: str, parts: List[Dict]):
         try:
-            response = self.s3_client.complete_multipart_upload(
+            response = self.s3_internal.complete_multipart_upload(
                 Bucket=self.bucket_name,
                 Key=object_name,
                 UploadId=upload_id,
@@ -62,7 +62,7 @@ class S3UploadService:
 
     def abort_multipart_upload(self, object_name: str, upload_id: str):
         try:
-            self.s3_client.abort_multipart_upload(
+            self.s3_internal.abort_multipart_upload(
                 Bucket=self.bucket_name,
                 Key=object_name,
                 UploadId=upload_id

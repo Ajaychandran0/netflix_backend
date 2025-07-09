@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, Request
 from app.schemas.video import VideoURL, VideoBase
-from app.schemas.video_upload import InitiateUploadRequest, InitiateUploadResponse
+from app.schemas.video_upload import InitiateUploadRequest, InitiateUploadResponse, CompleteUploadPayload
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
-from app.services.video import create_video_with_presigned_url, initiate_upload_session
+from app.services.video import create_video_with_presigned_url, initiate_upload_session, complete_upload_session
 
 
 router = APIRouter()
@@ -21,14 +21,9 @@ async def initiate_upload(
     return await initiate_upload_session(db=db, payload=payload)
 
 
-@router.post("complete_upload")
-async def complete_video_upload(request: Request):
-    """
-    Endpoint to complete video upload.
-    This endpoint can be used to finalize the upload process.
-    """
-    # Placeholder for future implementation
-    return {"message": "Video upload completed. Further implementation needed."}
+@router.post("/complete_upload")
+async def complete_upload(payload: CompleteUploadPayload, db: AsyncSession = Depends(get_db)):
+    return await complete_upload_session(db=db, payload=payload)
 
 
 @router.post("cancel_upload")

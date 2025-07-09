@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, UUID4
 from typing import List
 
 class InitiateUploadRequest(BaseModel):
@@ -44,3 +44,18 @@ class InitiateUploadResponse(BaseModel):
     upload_id: str
     video_id: UUID
     parts: list[PresignedPart]
+
+
+class PartETag(BaseModel):
+    part_number: int
+    etag: str
+
+class CompleteUploadPayload(BaseModel):
+    video_id: UUID4
+    upload_id: str
+    parts: List[PartETag]
+    
+class CompleteUploadResponse(BaseModel):
+    message: str = "Upload completed successfully"
+    video_id: UUID4
+    upload_id: str

@@ -12,7 +12,6 @@ class VideoStatus(str, enum.Enum):
     COMPLETED = "completed"
     FAILED = "failed"
 
-
 class Video(Base):
     __tablename__ = "videos"
 
