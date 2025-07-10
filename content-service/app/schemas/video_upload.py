@@ -31,7 +31,6 @@ class InitiateUploadRequest(BaseModel):
     filename: str = Field(..., example="testfile.mp4")
     title: str = Field(..., example="Sample Video")
     description: Optional[str] = Field(None, example="Test upload")
-    user_id: UUID
     total_parts: int = Field(..., gt=0, example=5)
 
 
@@ -56,6 +55,5 @@ class CompleteUploadPayload(BaseModel):
     parts: List[PartETag]
     
 class CompleteUploadResponse(BaseModel):
-    message: str = "Upload completed successfully"
     video_id: UUID4
     upload_id: str

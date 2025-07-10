@@ -1,8 +1,10 @@
 from app.schemas.video import VideoCreate, VideoURL
+from app.schemas.user import UserContext
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.core.utils.s3 import generate_presigned_url
 from app.core.utils.s3_services import S3UploadService
+from app.core.utils.response import api_response
 from uuid import uuid4
 from app.schemas.video_upload import (
     InitiateUploadRequest,
@@ -10,6 +12,8 @@ from app.schemas.video_upload import (
     CompleteUploadPayload,
     CompleteUploadResponse,
 )
+from fastapi.encoders import jsonable_encoder
+
 
 # models
 from app.db.models.video import Video, VideoStatus
@@ -18,52 +22,54 @@ from app.db.models.upload_session import UploadSession, UploadStatus
 
 # For multipart uploads
 async def initiate_upload_session(
-    db: AsyncSession, payload: InitiateUploadRequest
+    db: AsyncSession, payload: InitiateUploadRequest, user: UserContext
 ) -> InitiateUploadResponse:
     s3 = S3UploadService()
     object_key = f"uploads/{uuid4()}_{payload.filename}"
 
     # Step 1: Create multipart upload and get UploadId
     upload_id = s3.initiate_multipart_upload(object_key)
-    print(f"Upload ID: {upload_id}")
 
     # Step 2: Generate presigned URLs for each part
     urls = s3.generate_presigned_urls(
         object_name=object_key, upload_id=upload_id, total_parts=payload.total_parts
     )
-    print(f"Presigned URLs: {urls}")
-
     # Step 3: Insert into UploadSession + Video tables
     new_video = Video(
         title=payload.filename,
         description=payload.description,
-        user_id=payload.user_id,
+        user_id=user.id,
         status=VideoStatus.UPLOADING,
         upload_path=object_key,
     )
-
     db.add(new_video)
     await db.flush()  # get video.id without commit
 
     upload_session = UploadSession(
         video_id=new_video.id,
-        user_id=payload.user_id,
+        user_id=user.id,
         upload_path=object_key,
         part_size=5 * 1024 * 1024,
         total_parts=payload.total_parts,
         status=UploadStatus.INITIATED,
         upload_id=upload_id,
-        parts_uploaded=payload.total_parts,
+        parts_uploaded=[],
     )
     db.add(upload_session)
     await db.commit()
     await db.refresh(new_video)
     await db.refresh(upload_session)
 
-    return InitiateUploadResponse(
+    result = InitiateUploadResponse(
         upload_id=upload_session.upload_id,
         video_id=new_video.id,
         parts=urls,
+    )
+    
+    return api_response(
+        data=jsonable_encoder(result),
+        message="Upload session initiated",
+        code="UPLOAD_SESSION_INITIATED"
     )
 
 
@@ -100,7 +106,7 @@ async def create_video_with_presigned_url(
 
 # # For completing multipart uploads
 async def complete_upload_session(
-    db: AsyncSession, payload: CompleteUploadPayload
+    db: AsyncSession, payload: CompleteUploadPayload, user: UserContext
 ) -> CompleteUploadResponse:
     # Get upload session
     result = await db.execute(
@@ -128,8 +134,13 @@ async def complete_upload_session(
         video.status = VideoStatus.COMPLETED
     await db.commit()
 
-    return CompleteUploadResponse(
-        message="Upload completed successfully",
+    result = CompleteUploadResponse(
         video_id=payload.video_id,
         upload_id=payload.upload_id,
+    )
+
+    return api_response(
+        data=jsonable_encoder(result),
+        message="Upload completed successfully",
+        code="UPLOAD_VIDEO_COMPLETED"
     )
