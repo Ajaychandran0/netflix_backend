@@ -15,6 +15,7 @@ const envSchema = z.object({
   }),
   JWT_SECRET: z.string().min(10, 'JWT_SECRET must be at least 10 characters'),
   USER_SERVICE_URL: z.string().url(),
+  CONTENT_SERVICE_URL: z.string().url(),
   REDIS_HOST: z.string().min(1, 'REDIS_HOST is required'),
   INTERNAL_API_KEY: z.string().min(10, 'INTERNAL_API_KEY is required'),
 });

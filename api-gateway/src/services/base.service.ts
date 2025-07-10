@@ -12,6 +12,7 @@ class BaseService {
         method: typeof this.httpMethods[number],
         path: string
     ) => {
+        console.log(`Forwarding request to ${serviceName} using ${method.toUpperCase()} method at path: ${path}`);
         return asyncErrorHandler(async (req: Request, res: Response, next: NextFunction) => {
             const client = serviceMap[serviceName];
 
@@ -44,6 +45,7 @@ class BaseService {
             }
 
             const { data } = axiosResponse;
+            console.log(`Response from ${serviceName}:`, data);
 
             apiResponse({
                 res,

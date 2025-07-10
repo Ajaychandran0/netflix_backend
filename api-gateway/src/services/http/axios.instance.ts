@@ -29,4 +29,4 @@ const createAxiosInstance = (baseURL: string): AxiosInstance => {
 };
 
 export const userServiceAxios = createAxiosInstance(SERVICE_URLS.USER_SERVICE);
-// export const contentServiceAxios = createAxiosInstance(SERVICE_URLS.CONTENT_SERVICE);
+export const contentServiceAxios = createAxiosInstance(SERVICE_URLS.CONTENT_SERVICE);
