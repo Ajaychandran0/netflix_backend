@@ -10,3 +10,4 @@ sqlalchemy==2.0.41
 alembic==1.16.1
 psycopg2-binary==2.9.9
 email_validator==2.2.0
+redis==6.2.0

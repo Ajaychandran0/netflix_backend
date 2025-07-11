@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     APP_ENV: Literal["development", "staging", "production"] = "development"
     API_DOCS_USER: str
     API_DOCS_PASS: str
+    REDIS_URL: str
     CONTENT_SERVICE_PORT: int = 3002
     DATABASE_URL: str
     AWS_ACCESS_KEY_ID: str

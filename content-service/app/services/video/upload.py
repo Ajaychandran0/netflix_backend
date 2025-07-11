@@ -13,6 +13,7 @@ from app.schemas.video_upload import (
     CompleteUploadResponse,
 )
 from fastapi.encoders import jsonable_encoder
+from app.services.video.video_event_publisher import VideoProcessingEventPublisher
 
 
 # models
@@ -65,11 +66,11 @@ async def initiate_upload_session(
         video_id=new_video.id,
         parts=urls,
     )
-    
+
     return api_response(
         data=jsonable_encoder(result),
         message="Upload session initiated",
-        code="UPLOAD_SESSION_INITIATED"
+        code="UPLOAD_SESSION_INITIATED",
     )
 
 
@@ -134,6 +135,19 @@ async def complete_upload_session(
         video.status = VideoStatus.COMPLETED
     await db.commit()
 
+    from app.services.video.video_event_publisher import VideoProcessingEventPublisher
+
+    publisher = VideoProcessingEventPublisher()
+    publisher.enqueue_video(
+        {
+            "video_id": str(video.id),
+            "upload_path": video.upload_path,
+            "user_id": str(video.user_id),
+            "title": video.title,
+            "thumbnail_url": video.thumbnail_url,
+        }
+    )
+
     result = CompleteUploadResponse(
         video_id=payload.video_id,
         upload_id=payload.upload_id,
@@ -142,5 +156,5 @@ async def complete_upload_session(
     return api_response(
         data=jsonable_encoder(result),
         message="Upload completed successfully",
-        code="UPLOAD_VIDEO_COMPLETED"
+        code="UPLOAD_VIDEO_COMPLETED",
     )

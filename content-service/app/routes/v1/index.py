@@ -9,7 +9,7 @@ from app.schemas.video_upload import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
-from app.services.video import (
+from app.services.video.upload import (
     create_video_with_presigned_url,
     initiate_upload_session,
     complete_upload_session,
