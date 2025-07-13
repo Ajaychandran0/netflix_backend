@@ -1,28 +1,26 @@
 from pydantic_settings import BaseSettings
 from typing import Literal
 
+
 class Settings(BaseSettings):
     APP_ENV: Literal["development", "staging", "production"] = "development"
     API_DOCS_USER: str
     API_DOCS_PASS: str
     
-    REDIS_URL: str
+    REDIS_URL: str = "redis://redis:6379/1"
     REDIS_STREAM_NAME: str = "video:processing:stream"
-    DOCKER_NETWORK: str = "bridge"
     
-    CONTENT_SERVICE_PORT: int = 3002
-    DATABASE_URL: str
-    AWS_ACCESS_KEY_ID: str
-    AWS_SECRET_ACCESS_KEY : str
-    AWS_S3_ENDPOINT :str
-    AWS_S3_PUBLIC_ENDPOINT: str
-    AWS_REGION:str
-    S3_TEMP_BUCKET:str
-    S3_VIDEO_BUCKET: str
+    REDIS_CONSUMER_GROUP: str = "video-processor-group"
+    REDIS_CONSUMER_NAME: str = "video-processor-instance-1"
+    PROCESSING_TIMEOUT: int = 60  # seconds
+
+    DOCKER_TRANSCODER_IMAGE: str = "video-transcoder"
+    DOCKER_NETWORK: str = "bridge"  # or the name of your internal network
 
     class Config:
         env_file = ".env"
         case_sensitive = True
+
 
 # Create a singleton settings instance
 settings = Settings()
