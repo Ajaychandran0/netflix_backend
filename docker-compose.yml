@@ -85,6 +85,24 @@ services:
       - minio 
 
   # ------------------------
+  # Video Processing Service
+  # ------------------------
+  video-processing-service:
+    container_name: video-processing-service
+    build:
+      context: ./video-processing-service
+      dockerfile: Dockerfile
+      # target: ${TARGET:-dev}
+    volumes:
+      - ./video-processing-service:/app
+      - /app/.venv
+    env_file:
+      - ./video-processing-service/.env
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # ------------------------
   # API Gateway
   # ------------------------
   api-gateway:
