@@ -26,7 +26,9 @@ services:
       - netflix_pgdata:/var/lib/postgresql/data # Persist data in case of container restart
       - ./docker-scripts:/docker-entrypoint-initdb.d
 
-    
+  # ------------------------
+  # MinIO
+  # ------------------------
   minio:
     image: minio/minio
     container_name: minio
@@ -39,6 +41,15 @@ services:
     volumes:
       - minio_data:/data
     command: server /data --console-address ":${MINIO_CONSOLE_PORT}"
+
+  # ------------------------
+  # Video Transcoder
+  # ------------------------
+  video-transcoder:
+    build:
+      context: ./video-transcoder
+    image: video-transcoder
+
 
   # ------------------------
   # User Service
@@ -93,7 +104,9 @@ services:
       context: ./video-processing-service
       dockerfile: Dockerfile
       # target: ${TARGET:-dev}
+    
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # For Docker-in-Docker functionality, binds the host's Docker socket with the container
       - ./video-processing-service:/app
       - /app/.venv
     env_file:

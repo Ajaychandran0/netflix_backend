@@ -10,9 +10,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && \
-    apt-get install -y build-essential gcc netcat && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+  # && apt-get install -y build-essential curl netcat \
+  && apt-get clean
 
 # Copy dependency files
 COPY pyproject.toml poetry.lock* /app/
