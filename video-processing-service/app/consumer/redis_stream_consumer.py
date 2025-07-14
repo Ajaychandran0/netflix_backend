@@ -32,10 +32,8 @@ class RedisStreamConsumer:
         # TODO - Add dlq_stream consumers
 
     async def ensure_consumer_group(self):
+        # Create the consumer group if it doesn't exist
         try:
-            exists = await self.redis.exists(self.stream_name)
-            if not exists:
-                await self.redis.xadd(self.stream_name, {"init": "true"})
             await self.redis.xgroup_create(
                 name=self.stream_name,
                 groupname=self.group_name,
@@ -78,9 +76,9 @@ class RedisStreamConsumer:
                 
                 logger.info(f"Processing video_id={event.video_id} from message ID {msg_id}")
                 
-                await launch_transcoder_container(event)
+                launch_transcoder_container(event)
                 await self.redis.xack(self.stream_name, self.group_name, msg_id)
-                
+
                 logger.info(f"Acknowledged message ID {msg_id}")
                 
             except Exception as e:
@@ -121,4 +119,5 @@ async def run_consumer(redis_url, stream_name, group_name, consumer_name):
     while True:
         messages = await consumer.read()
         for msg_id, msg_data in messages:
+            print(f"Received message ID {msg_id} with data: {msg_data} xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
             asyncio.create_task(consumer.handle(msg_id, msg_data))
