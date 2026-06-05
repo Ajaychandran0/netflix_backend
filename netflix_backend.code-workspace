@@ -12,6 +12,9 @@
     {
       "path": "video-processing-service"
     },
+    {
+      "path": "video-transcoder"
+    }
   ],
   "settings": {}
 }

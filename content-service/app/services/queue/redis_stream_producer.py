@@ -22,7 +22,8 @@ class RedisStreamProducer(BaseQueueProducer):
         sanitized_data = self.sanitize_event_data(data)
         for attempt in range(max_retries):
             try:
-                self.redis.xadd(stream_name, {k: json.dumps(v) for k, v in sanitized_data.items()})
+                self.redis.xadd(stream_name, {k: str(v) for k, v in sanitized_data.items()})
+                print(f"Published event to stream '{stream_name}': {sanitized_data}")
                 return
             except redis.exceptions.RedisError as e:
                 logging.error(f"Redis stream error (attempt {attempt + 1}): {e}")

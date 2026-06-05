@@ -1,12 +1,9 @@
 import asyncio
-import logging
 from app.consumer.redis_stream_consumer import run_consumer
 from app.core.config import settings
-from app.core.logger import configure_logging
+from app.core.logger import configure_logging, logger
 
 configure_logging()
-logger = logging.getLogger(__name__)
-
 
 async def main():
     logger.info("Starting video-processing-service")
@@ -19,7 +16,7 @@ async def main():
             consumer_name=settings.REDIS_CONSUMER_NAME,
         )
     except Exception as e:
-        logging.exception("Unhandled error in video processor service")
+        logger.exception("Unhandled error in video processor service")
         raise
 
 
