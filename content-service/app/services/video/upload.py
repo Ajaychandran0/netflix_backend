@@ -147,6 +147,7 @@ async def complete_upload_session(
             "thumbnail_url": video.thumbnail_url,
         }
     )
+    print(f"Enqueued video processing event for video_id: {video.id}")
 
     result = CompleteUploadResponse(
         video_id=payload.video_id,

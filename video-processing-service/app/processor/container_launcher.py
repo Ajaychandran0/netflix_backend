@@ -11,7 +11,7 @@ def launch_transcoder_container(event: VideoUploadEvent):
             image=settings.DOCKER_TRANSCODER_IMAGE,  # This image should exist locally or be pulled from a registry
             name=f"transcoder-{event.video_id}",
             detach=True,
-            auto_remove=True,
+            auto_remove=False,  # Keep container around for debugging; set to True in production
             network=settings.DOCKER_NETWORK,
             environment={
                 "VIDEO_ID": str(event.video_id),
@@ -21,7 +21,7 @@ def launch_transcoder_container(event: VideoUploadEvent):
                 "THUMBNAIL_URL": event.thumbnail_url or "",
             },
         )
-        logger.info(f"Launched container {container.name} for video_id {event.video_id}")
+        logger.info(f"Launched containerxxxxx {container.name} for video_id {event.video_id}")
     except Exception as e:
         logger.error(f"Failed to launch container for video {event.video_id}: {e}")
         raise e # Re-raise to handle in the consumer
