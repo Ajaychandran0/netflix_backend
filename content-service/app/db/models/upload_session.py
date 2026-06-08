@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import String, Column, DateTime, ForeignKey, JSON, Integer, Enum
+from sqlalchemy import String, Column, DateTime, ForeignKey, Integer, Enum
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
 from app.db.base import Base
@@ -7,10 +7,11 @@ import enum
 
 
 class UploadStatus(str, enum.Enum):
-    INITIATED = "initiated"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-    ABORTED = "aborted"
+    INITIATED = "INITIATED"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    ABORTED = "ABORTED"
+    FAILED = "FAILED"
 
 
 class UploadSession(Base):
@@ -29,5 +30,6 @@ class UploadSession(Base):
     parts_issued = Column(Integer, default=0)     # how many presigned parts generated so far
     status = Column(Enum(UploadStatus), default=UploadStatus.INITIATED, nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=True)  # For cleanup job
+    upload_completed_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
