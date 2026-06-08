@@ -5,10 +5,11 @@ from datetime import datetime
 from enum import Enum
 
 class VideoStatus(str, Enum):
-    UPLOADING = "uploading"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
+    UPLOADING = "UPLOADING"
+    QUEUED = "QUEUED"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
 
 class VideoBase(BaseModel):
     title: str
