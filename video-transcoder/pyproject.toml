@@ -1,5 +1,5 @@
 [project]
-name = "video-transcoder"
+name = "app"
 version = "1"
 description = "The video-transcoder is a containerized microservice responsible for performing media transcoding and thumbnail generation as part of the video processing pipeline."
 authors = [
