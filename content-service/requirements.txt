@@ -11,3 +11,6 @@ alembic==1.16.1
 psycopg2-binary==2.9.9
 email_validator==2.2.0
 redis==6.2.0
+
+# Shared SDK
+git+https://github.com/Ajaychandran0/netflix-platform-messaging-sdk.git@v0.1.2

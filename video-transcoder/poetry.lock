@@ -89,6 +89,25 @@ files = [
 ]
 
 [[package]]
+name = "netflix-platform-messaging-sdk"
+version = "0.1.2"
+description = "Shared Redis Streams messaging SDK for platform microservices"
+optional = false
+python-versions = ">=3.11,<4.0"
+groups = ["main"]
+files = []
+develop = false
+
+[package.dependencies]
+redis = ">=6.0.0"
+
+[package.source]
+type = "git"
+url = "https://github.com/Ajaychandran0/netflix-platform-messaging-sdk.git"
+reference = "v0.1.2"
+resolved_reference = "2684c4d6994be385bb850fbaa2fe9a5246e70519"
+
+[[package]]
 name = "pydantic"
 version = "2.11.7"
 description = "Data validation using Python type hints"
@@ -373,5 +392,5 @@ zstd = ["zstandard (>=0.18.0)"]
 
 [metadata]
 lock-version = "2.1"
-python-versions = ">=3.10,<3.14"
-content-hash = "d85cd7aa5ab3edd57f8f2bf15d2a69689d1e94f423a8e4cd263815161c3bc4d4"
+python-versions = ">=3.11,<3.14"
+content-hash = "e66f98f5354833cfc48c9fbb86a6433b166a15d1f0be08d29cb2339ed0342def"

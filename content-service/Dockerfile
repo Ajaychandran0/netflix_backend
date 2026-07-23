@@ -9,9 +9,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update \
-  # && apt-get install -y build-essential curl netcat \
-  && apt-get clean
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install pipenv or poetry if you're using it (optional)
 
