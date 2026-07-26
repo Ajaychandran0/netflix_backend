@@ -9,6 +9,8 @@ services:
     container_name: redis
     ports:
       - "${REDIS_PORT}:${REDIS_PORT}"
+    networks:
+      - platform-network
 
   # ------------------------
   # Postgres
@@ -25,6 +27,8 @@ services:
     volumes:
       - netflix_pgdata:/var/lib/postgresql/data # Persist data in case of container restart
       - ./docker-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - platform-network
 
   # ------------------------
   # MinIO
@@ -41,6 +45,8 @@ services:
     volumes:
       - minio_data:/data
     command: server /data --console-address ":${MINIO_CONSOLE_PORT}"
+    networks:
+      - platform-network
 
   # ------------------------
   # Video Transcoder
@@ -49,6 +55,8 @@ services:
     build:
       context: ./video-transcoder
     image: video-transcoder
+    volumes:
+      - ./video-transcoder:/app
 
 
   # ------------------------
@@ -74,6 +82,9 @@ services:
       - postgres
       - redis
 
+    networks:
+      - platform-network
+
   # ------------------------
   # Content Service
   # ------------------------
@@ -94,6 +105,8 @@ services:
       - postgres
       - redis
       - minio 
+    networks:
+      - platform-network
 
   # ------------------------
   # Video Processing Service
@@ -114,6 +127,8 @@ services:
     depends_on:
       - redis
     restart: unless-stopped
+    networks:
+      - platform-network
 
   # ------------------------
   # API Gateway
@@ -136,9 +151,16 @@ services:
       - redis
       - postgres
       - user-service
+    networks:
+      - platform-network
 
 volumes:
   netflix_pgdata:
     driver: local # Make sure data is persisted
   minio_data:
     driver: local # Make sure data is persisted
+
+
+networks:
+  platform-network:
+    name: platform-network

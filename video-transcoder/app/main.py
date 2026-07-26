@@ -2,13 +2,16 @@ import sys
 import asyncio
 from app.core.config import static_config, dynamic_config
 from app.core.logger import configure_logging, logger
+from app.schemas.event import VideoTranscodingCompletedEvent
 from app.transcoder.downloader import download_video_from_s3
 from app.transcoder.transcoder import transcode_video_to_hls
 from app.transcoder.master_playlist import generate_master_playlist
 from app.transcoder.thumbnail import generate_thumbnail
 from app.transcoder.uploader import upload_transcoded_outputs
 from app.transcoder.status_tracker import StatusTracker
+from app.services.video.video_events import publish_video_completed_event
 # from app.schemas.event import Event
+
 
 configure_logging()
 
@@ -19,9 +22,9 @@ async def main():
         user_id = dynamic_config.user_id
         upload_path = dynamic_config.upload_path
         title = dynamic_config.title
-        thumbnail_url = dynamic_config.thumbnail_url
+        thumbnail_object_key = dynamic_config.thumbnail_object_key
 
-        # event = Event(video_id, user_id, upload_path, title, thumbnail_url)
+        # event = Event(video_id, user_id, upload_path, title, thumbnail_object_key)
         print(f"Received event for video_id: {video_id}, user_id: {user_id}, upload_path: {upload_path}")
 
         logger.info(f"Starting transcoding for video: {video_id}")
@@ -62,6 +65,15 @@ async def main():
             video_id=video_id,
             local_output_dir=static_config.s3_transcoded_base_path,
         )
+
+        event = VideoTranscodingCompletedEvent(
+            video_id=video_id,
+            thumbnail_object_key=thumbnail_object_key,
+            master_playlist_key=master_path,
+            # duration=duration,
+        )
+
+        publish_video_completed_event(event)
 
         # 7. Clean up
         # await tracker.set_stage("cleanup")

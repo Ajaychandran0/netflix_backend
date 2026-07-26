@@ -24,6 +24,7 @@ class StaticSettings(BaseSettings):
 
     # other settings
     temp_dir: Path = Field(default=Path("./tmp_videos"), env="TEMP_DIR")
+    video_events_stream: str = Field(default="video:events:stream", env="VIDEO_EVENTS_STREAM")
 
     s3_transcoded_base_path: str = Field(
         default="transcoded_videos", env="S3_TRANSCODED_BASE_PATH"
@@ -40,7 +41,7 @@ class DynamicSettings(BaseSettings):
     user_id: str = Field(env="USER_ID")
     upload_path: str = Field(env="UPLOAD_PATH")
     title: str = Field(env="TITLE")
-    thumbnail_url: str = Field(default="", env="THUMBNAIL_URL")
+    thumbnail_object_key: str = Field(default="", env="THUMBNAIL_OBJECT_KEY")
     enable_hd: Optional[bool] = Field(default=True, env="ENABLE_HD")
 
     @field_validator("enable_hd", mode="before")

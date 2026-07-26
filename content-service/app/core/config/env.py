@@ -7,9 +7,12 @@ class Settings(BaseSettings):
     API_DOCS_PASS: str
     
     REDIS_URL: str
-    REDIS_STREAM_NAME: str = "video:processing:stream"
     DOCKER_NETWORK: str = "bridge"
-    
+    VIDEO_PROCESSING_STREAM: str = "video:processing:stream"
+    VIDEO_EVENTS_STREAM: str = "video:events:stream"
+    REDIS_CONSUMER_GROUP: str = "video-transcoder-update-group"
+    REDIS_CONSUMER_NAME: str = "video-transcoder-update-instance-1"
+
     CONTENT_SERVICE_PORT: int = 3002
     DATABASE_URL: str
     AWS_ACCESS_KEY_ID: str

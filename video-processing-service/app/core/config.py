@@ -8,8 +8,8 @@ class Settings(BaseSettings):
     API_DOCS_PASS: str
     
     REDIS_URL: str = "redis://redis:6379/1"
-    REDIS_STREAM_NAME: str = "video:processing:stream"
-    
+    VIDEO_PROCESSING_STREAM: str = "video:processing:stream"
+
     REDIS_CONSUMER_GROUP: str = "video-processor-group"
     REDIS_CONSUMER_NAME: str = "video-processor-instance-1"
     PROCESSING_TIMEOUT: int = 60  # seconds
