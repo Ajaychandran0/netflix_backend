@@ -7,5 +7,5 @@ class VideoUploadEvent(BaseModel):
     user_id: UUID4
     upload_path: str
     title: str
-    thumbnail_url: Optional[str] = None
+    thumbnail_object_key: Optional[str] = None
     retries: Optional[int] = Field(default=0, ge=0)

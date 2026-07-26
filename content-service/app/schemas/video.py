@@ -29,7 +29,7 @@ class VideoURL(VideoCreate):
 
 class VideoOut(VideoURL):
     hls_playlist_url: Optional[str]
-    thumbnail_url: Optional[str]
+    thumbnail_object_key: Optional[str]
     duration: Optional[float]
 
     class Config:
