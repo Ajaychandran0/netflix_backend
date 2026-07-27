@@ -4,7 +4,7 @@ import contextlib
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.core.utils.bucket_service import BucketService
-from app.services.video.video_event_consumer import run_video_event_consumer
+from app.events.consumers.video_event_consumer import start_video_event_consumer
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -12,7 +12,7 @@ async def lifespan(app: FastAPI):
     bucket_service = BucketService()
     bucket_service.ensure_bucket_exists()
     
-    app.state.video_consumer_task = asyncio.create_task(run_video_event_consumer())
+    app.state.video_consumer_task = asyncio.create_task(start_video_event_consumer())
     yield
 
     app.state.video_consumer_task.cancel()

@@ -13,8 +13,7 @@ from app.schemas.video_upload import (
     CompleteUploadResponse,
 )
 from fastapi.encoders import jsonable_encoder
-from app.services.video.video_event_publisher import VideoProcessingEventPublisher
-
+from app.events.publishers.video_event_publisher import VideoProcessingEventPublisher
 
 # models
 from app.db.models.video import Video, VideoStatus
@@ -135,8 +134,6 @@ async def complete_upload_session(
         video.status = VideoStatus.COMPLETED
     await db.commit()
 
-    from app.services.video.video_event_publisher import VideoProcessingEventPublisher
-
     publisher = VideoProcessingEventPublisher()
     publisher.enqueue_video(
         {
@@ -144,7 +141,7 @@ async def complete_upload_session(
             "upload_path": video.upload_path,
             "user_id": str(video.user_id),
             "title": video.title,
-            "thumbnail_url": video.thumbnail_url,
+            "thumbnail_object_key": video.thumbnail_object_key,
         }
     )
     print(f"Enqueued video processing event for video_id: {video.id}")
