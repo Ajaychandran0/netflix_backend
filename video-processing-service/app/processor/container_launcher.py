@@ -18,7 +18,7 @@ def launch_transcoder_container(event: VideoUploadEvent):
                 "USER_ID": str(event.user_id),
                 "UPLOAD_PATH": event.upload_path,
                 "TITLE": event.title,
-                "THUMBNAIL_URL": event.thumbnail_url or "",
+                "THUMBNAIL_OBJECT_KEY": event.thumbnail_object_key or "",
             },
         )
         logger.info(f"Launched containerxxxxx {container.name} for video_id {event.video_id}")
