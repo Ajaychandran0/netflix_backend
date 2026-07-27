@@ -5,9 +5,9 @@ from typing import AsyncGenerator
 
 isEcho = settings.APP_ENV != "production"
 engine = create_async_engine(settings.DATABASE_URL, future=True, echo=isEcho)
-SessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+AsyncSessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    async with SessionLocal() as session:
+    async with AsyncSessionLocal() as session:
         yield session
