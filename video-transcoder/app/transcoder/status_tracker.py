@@ -1,56 +1,120 @@
-from contextlib import asynccontextmanager
-from redis.asyncio import Redis
-from datetime import datetime
+from datetime import datetime, timezone
+from uuid import UUID
+
+from app.constants.processing_stage import ProcessingStage
+from app.constants.processing_status import ProcessingStatus
+from app.constants.redis_keys import RedisKeys
+from app.core.redis_client import redis_client
 
 
 class StatusTracker:
-    def __init__(self, redis: Redis):
-        self.redis = redis
+    DEFAULT_TTL_SECONDS = 3600          # 1 hour
+    COMPLETED_TTL_SECONDS = 600         # 10 minutes
 
-    def _status_key(self, video_id: str) -> str:
-        return f"video:status:{video_id}"
+    def __init__(self, video_id: UUID):
+        self.video_id = str(video_id)
+        self.key = RedisKeys.video_progress(self.video_id)
 
-    async def update_status(
+    async def start(self) -> None:
+        """
+        Initializes the processing status.
+        """
+        await self._save(
+            progress=0,
+            stage=ProcessingStage.DOWNLOADING,
+            status=ProcessingStatus.PROCESSING,
+        )
+
+    async def update_stage(
         self,
-        video_id: str,
-        stage: str,
-        current_task: str = "",
-        progress: str = "",
-        error: str = "",
-    ):
-        key = self._status_key(video_id)
-        now = datetime.utcnow().isoformat()
+        stage: ProcessingStage,
+    ) -> None:
+        """
+        Updates only the processing stage.
+        """
+        await self._save(stage=stage)
 
-        update_data = {
-            "stage": stage,
-            "current_task": current_task,
-            "progress": progress,
-            "updated_at": now,
-        }
+    async def update_progress(
+        self,
+        progress: int,
+    ) -> None:
+        """
+        Updates only the progress percentage.
+        """
+        progress = max(0, min(progress, 100))
 
-        if error:
-            update_data["error"] = error
+        await self._save(progress=progress)
 
-        await self.redis.hset(key, mapping=update_data)
-
-    async def mark_failed(self, video_id: str, error: str):
-        await self.update_status(video_id, stage="failed", error=error)
-
-    async def mark_completed(self, video_id: str):
-        await self.update_status(
-            video_id, stage="completed", progress="100%", current_task="done"
+    async def complete(self) -> None:
+        """
+        Marks processing as completed.
+        """
+        await self._save(
+            progress=100,
+            stage=ProcessingStage.CLEANUP,
+            status=ProcessingStatus.COMPLETED,
         )
 
-    @asynccontextmanager
-    async def track_stage(
-        self, video_id: str, stage: str, task: str, progress: str = ""
-    ):
-        """Context manager to automatically update status before and after a task"""
-        await self.update_status(
-            video_id, stage=stage, current_task=task, progress=progress
+        await redis_client.expire(
+            self.key,
+            self.COMPLETED_TTL_SECONDS,
         )
-        try:
-            yield
-        except Exception as e:
-            await self.mark_failed(video_id, error=str(e))
-            raise
+
+    async def fail(
+        self,
+        stage: ProcessingStage,
+    ) -> None:
+        """
+        Marks processing as failed.
+        """
+        await self._save(
+            stage=stage,
+            status=ProcessingStatus.FAILED,
+        )
+
+        await redis_client.expire(
+            self.key,
+            self.COMPLETED_TTL_SECONDS,
+        )
+
+    async def clear(self) -> None:
+        """
+        Removes the progress key immediately.
+        """
+        await redis_client.delete(self.key)
+
+    async def _save(
+        self,
+        *,
+        progress: int | None = None,
+        stage: ProcessingStage | None = None,
+        status: ProcessingStatus | None = None,
+    ) -> None:
+        """
+        Saves only the supplied fields.
+        """
+
+        payload = {}
+
+        if progress is not None:
+            payload["progress"] = progress
+
+        if stage is not None:
+            payload["stage"] = stage.value
+
+        if status is not None:
+            payload["status"] = status.value
+
+        payload["updated_at"] = datetime.now(
+            timezone.utc
+        ).isoformat()
+
+        await redis_client.hset(
+            self.key,
+            mapping=payload,
+        )
+
+        await redis_client.expire(
+            self.key,
+            self.DEFAULT_TTL_SECONDS,
+        )
