@@ -7,7 +7,7 @@ class VideoEventHandler:
 
         self.handlers = {
             "VIDEO_PROCESSING_STARTED": self.handle_processing_started,
-            "VIDEO_STAGE_CHANGED": self.handle_stage_changed,
+            "VIDEO_PROCESSING_STAGE_CHANGED": self.handle_stage_changed,
             "VIDEO_PROCESSING_COMPLETED": self.handle_processing_completed,
             "VIDEO_PROCESSING_FAILED": self.handle_processing_failed,
         }

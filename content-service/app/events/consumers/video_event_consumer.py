@@ -6,8 +6,10 @@ from platform_messaging import StreamConsumer
 
 
 async def message_handler(
+    msg_id: str,
     payload: dict,
 ):
+    _ = msg_id  # msg_id is not used in this handler, but it can be useful for logging or debugging
     async with AsyncSessionLocal() as db:
         handler = VideoEventHandler(db)
         await handler.handle(payload)
