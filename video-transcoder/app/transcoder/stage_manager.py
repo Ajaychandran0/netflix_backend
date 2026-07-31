@@ -4,6 +4,7 @@ from app.constants.processing_stage import ProcessingStage
 from app.schemas.video_events import StageChangedEvent
 from app.services.video.video_event_publisher import VideoEventPublisher
 from app.transcoder.status_tracker import StatusTracker
+from app.transcoder.progress_utils import get_stage_progress_range
 
 
 class StageManager:
@@ -31,12 +32,13 @@ class StageManager:
     async def transition_to(
         self,
         stage: ProcessingStage,
-        progress: int,
     ) -> None:
         """
         Transition the video processing pipeline to a new stage.
         """
 
+        progress = get_stage_progress_range(stage).start
+        
         await self.tracker.update_stage(stage)
         await self.tracker.update_progress(progress)
 
