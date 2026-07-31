@@ -1,25 +1,33 @@
 import asyncio
+from pathlib import Path
 
-from app.core.config import static_config, dynamic_config
+from app.core.config import dynamic_config
 from app.core.logger import configure_logging, logger
 
 from app.constants.processing_stage import ProcessingStage
+from app.constants.asset_names import TRANSCODER_OUTPUT_DIR
+from app.constants.transcoding_presets import TRANSCODING_RESOLUTIONS
 
 from app.schemas.video_events import (
     ProcessingStartedEvent,
     ProcessingCompletedEvent,
     ProcessingFailedEvent,
 )
+from app.schemas.video_metadata import VideoMetadata
+from app.schemas.uploaded_assets import UploadedAssets
 
 from app.services.video.video_event_publisher import VideoEventPublisher
+from app.transcoder.progress_coordinator import TranscodingProgressCoordinator
 from app.transcoder.status_tracker import StatusTracker
 from app.transcoder.stage_manager import StageManager
 
-from app.transcoder.downloader import download_video_from_s3
+from app.transcoder.downloader import download_source_video
+from app.transcoder.metadata import extract_video_metadata
 from app.transcoder.transcoder import transcode_video_to_hls
-from app.transcoder.master_playlist import generate_master_playlist
-from app.transcoder.thumbnail import generate_thumbnail
+from app.transcoder.master_playlist_generator import generate_master_playlist
+from app.transcoder.thumbnail_generator import generate_thumbnail
 from app.transcoder.uploader import upload_transcoded_outputs
+from app.transcoder.cleaner import cleanup
 
 
 configure_logging()
@@ -29,6 +37,7 @@ async def main():
     publisher = None
     tracker = None
     stage_manager = None
+    progress_coordinator = None
     video_id = None
     
     current_stage = ProcessingStage.DOWNLOADING
@@ -39,9 +48,6 @@ async def main():
         # ------------------------------------------------------------------
         video_id = dynamic_config.video_id
         upload_path = dynamic_config.upload_path
-        thumbnail_object_key = dynamic_config.thumbnail_object_key
-        # user_id = dynamic_config.user_id
-        # title = dynamic_config.title
 
         logger.info(
             "Starting transcoding for video %s",
@@ -60,6 +66,13 @@ async def main():
             tracker=tracker,
             publisher=publisher,
         )
+        
+        progress_coordinator = (
+            TranscodingProgressCoordinator(
+                resolutions=TRANSCODING_RESOLUTIONS,
+                status_tracker=tracker,
+            )
+        )
 
         # ------------------------------------------------------------------
         # Processing started
@@ -76,94 +89,86 @@ async def main():
         # Download
         # ------------------------------------------------------------------
         current_stage = ProcessingStage.DOWNLOADING
-        await stage_manager.transition_to(
-            current_stage,
-            progress=5,
-        )
+        await stage_manager.transition_to(current_stage)
 
-        local_input_path = download_video_from_s3(upload_path) 
+        local_input_path: Path = download_source_video(upload_path) 
+        
+        # ------------------------------------------------------------------
+        # Extract metadata
+        # ------------------------------------------------------------------
+        current_stage = ProcessingStage.EXTRACTING_METADATA
+        await stage_manager.transition_to(current_stage)
+
+        video_metadata: VideoMetadata = extract_video_metadata(local_input_path)
 
         # ------------------------------------------------------------------
         # Transcoding
         # ------------------------------------------------------------------
         current_stage = ProcessingStage.TRANSCODING
-        await stage_manager.transition_to(
-            current_stage,
-            progress=10,
-        )
-
-        output_map = await transcode_video_to_hls(
+        await stage_manager.transition_to(current_stage)
+  
+        output_map: dict[str, Path] = await transcode_video_to_hls(
             input_path=local_input_path,
-            output_base_dir=static_config.s3_transcoded_base_path,
-            resolutions=[
-                "240p",
-                "360p",
-                "480p",
-                "720p",
-                "1080p",
-            ],
+            output_base_dir=TRANSCODER_OUTPUT_DIR,
+            resolutions=TRANSCODING_RESOLUTIONS,
+            video_metadata=video_metadata,
+            progress_callback=progress_coordinator.on_progress,
         )
-
+        
+        
         # ------------------------------------------------------------------
         # Master playlist
         # ------------------------------------------------------------------
         current_stage = ProcessingStage.GENERATING_PLAYLIST
-        await stage_manager.transition_to(
-            current_stage,
-            progress=85,
-        )
+        await stage_manager.transition_to(current_stage)
 
-        master_path = generate_master_playlist(
+        local_master_playlist_path: Path = generate_master_playlist(
             output_map=output_map,
-            output_dir=static_config.s3_transcoded_base_path,
+            output_dir=TRANSCODER_OUTPUT_DIR,
         )
 
         # ------------------------------------------------------------------
         # Thumbnail
         # ------------------------------------------------------------------
         current_stage = ProcessingStage.GENERATING_THUMBNAIL
-        await stage_manager.transition_to(
-            current_stage,
-            progress=90,
-        )
+        await stage_manager.transition_to(current_stage)
 
-        generate_thumbnail(
+        local_thumbnail_path: Path = generate_thumbnail(
             local_input_path,
-            f"{static_config.s3_transcoded_base_path}/thumbnail.jpg",
+            duration_ms=video_metadata.duration_ms,
         )
 
         # ------------------------------------------------------------------
         # Upload assets
         # ------------------------------------------------------------------
         current_stage = ProcessingStage.UPLOADING_ASSETS
-        await stage_manager.transition_to(
-            current_stage,
-            progress=93,
-        )
+        await stage_manager.transition_to(current_stage)
 
-        upload_transcoded_outputs(
+        uploaded_assets: UploadedAssets = upload_transcoded_outputs(
             video_id=video_id,
-            local_output_dir=static_config.s3_transcoded_base_path,
+            output_dir=TRANSCODER_OUTPUT_DIR,
+            local_master_playlist_path=local_master_playlist_path,
+            local_thumbnail_path=local_thumbnail_path,
         )
 
         # ------------------------------------------------------------------
         # Cleanup
         # ------------------------------------------------------------------
         current_stage = ProcessingStage.CLEANUP
+        await stage_manager.transition_to(current_stage)
 
-        await stage_manager.transition_to(
-            current_stage,
-            progress=98,
-        )
+        cleanup(upload_path=upload_path)
 
         publisher.publish_processing_completed(
             ProcessingCompletedEvent(
                 video_id=video_id,
-                master_playlist_key=master_path,
-                thumbnail_object_key=thumbnail_object_key,
-                duration_ms=0,
-                source_width=0,
-                source_height=0,
+                master_playlist_object_key=uploaded_assets.master_playlist_object_key,
+                thumbnail_object_key=uploaded_assets.thumbnail_object_key,
+                duration_ms=video_metadata.duration_ms,
+                source_width=video_metadata.source_width,
+                source_height=video_metadata.source_height,
+                source_file_size_bytes=video_metadata.source_file_size_bytes,
+                mime_type=video_metadata.mime_type,
             )
         )
         
