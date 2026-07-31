@@ -18,10 +18,7 @@ def launch_transcoder_container(
 
     environment = {
         "VIDEO_ID": str(event.video_id),
-        "USER_ID": str(event.user_id),
         "UPLOAD_PATH": event.upload_path,
-        "TITLE": event.title,
-        "THUMBNAIL_OBJECT_KEY": event.thumbnail_object_key or "",
     }
 
     try:

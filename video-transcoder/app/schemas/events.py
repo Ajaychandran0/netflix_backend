@@ -1,6 +1,7 @@
-from pathlib import Path
 from uuid import UUID
 from pydantic import BaseModel
+
+from app.constants.processing import ProcessingStage
 
 
 class ProcessingStartedEvent(BaseModel):
@@ -9,14 +10,14 @@ class ProcessingStartedEvent(BaseModel):
 
 class StageChangedEvent(BaseModel):
     video_id: UUID
-    current_stage: str
+    current_stage: ProcessingStage
 
 
 class ProcessingCompletedEvent(BaseModel):
     video_id: UUID
 
-    master_playlist_object_key: Path
-    thumbnail_object_key: Path
+    master_playlist_object_key: str
+    thumbnail_object_key: str
 
     duration_ms: int
     source_width: int
@@ -28,5 +29,5 @@ class ProcessingCompletedEvent(BaseModel):
 class ProcessingFailedEvent(BaseModel):
     video_id: UUID
 
-    current_stage: str
+    current_stage: ProcessingStage
     error: str

@@ -37,16 +37,7 @@ class StaticSettings(BaseSettings):
 class DynamicSettings(BaseSettings):
     # Passed via `-e` at container runtime
     video_id: str = Field(env="VIDEO_ID")
-    user_id: str = Field(env="USER_ID")
     upload_path: str = Field(env="UPLOAD_PATH")
-    title: str = Field(env="TITLE")
-    thumbnail_object_key: str = Field(default="", env="THUMBNAIL_OBJECT_KEY")
-    enable_hd: Optional[bool] = Field(default=True, env="ENABLE_HD")
-
-    @field_validator("enable_hd", mode="before")
-    @classmethod
-    def parse_bool(cls, v):
-        return str(v).lower() in {"true", "1", "yes"}
 
     class Config:
         # No .env for dynamic; only read from actual env vars
