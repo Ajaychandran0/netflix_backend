@@ -36,11 +36,12 @@ async def initiate_upload_session(
     )
     # Step 3: Insert into UploadSession + Video tables
     new_video = Video(
-        title=payload.filename,
+        title=payload.title,
         description=payload.description,
         user_id=user.id,
         status=VideoStatus.UPLOADING,
         upload_path=object_key,
+        original_filename=payload.filename
     )
     db.add(new_video)
     await db.flush()  # get video.id without commit
