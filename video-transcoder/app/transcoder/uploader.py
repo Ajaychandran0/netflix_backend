@@ -1,59 +1,88 @@
-import os
-from app.core.config import static_config, get_s3_client
+from pathlib import Path
+
+from app.core.config import get_s3_client, static_config
 from app.core.logger import logger
+
+from app.schemas.uploaded_assets import UploadedAssets
 
 s3 = get_s3_client()
 
-def upload_directory(local_dir: str, s3_base_path: str):
-    """
-    Recursively upload a local directory to S3/MinIO.
-    """
-
-    for root, _, files in os.walk(local_dir):
-
-        for file in files:
-            local_path = os.path.join(root, file)
-
-            # Relative path from base dir
-            rel_path = os.path.relpath(local_path, local_dir)
-
-            # Final S3 object key
-            s3_key = os.path.join(s3_base_path, rel_path).replace("\\", "/")
-
-            try:
-                s3.upload_file(
-                    local_path,
-                    static_config.s3_video_bucket,
-                    s3_key
-                )
-
-                logger.info(
-                    f"Uploaded {local_path} "
-                    f"to s3://{static_config.s3_video_bucket}/{s3_key}"
-                )
-
-            except Exception as e:
-                logger.error(f"Failed to upload {local_path}: {e}")
-                raise
-
 
 def upload_transcoded_outputs(
+    *,
     video_id: str,
-    local_output_dir: str,
-):
+    output_dir: Path,
+    local_master_playlist_path: Path,
+    local_thumbnail_path: Path,
+) -> UploadedAssets:
     """
-    Upload all transcoded outputs for a video.
+    Upload every transcoded asset produced by the transcoder.
 
-    Example:
-    local_output_dir:
-        /tmp/video-transcoder/<video_id>/
+    All files inside ``output_dir`` are uploaded recursively to
 
-    Uploads to:
-        transcoded_videos/<video_id>/
+        <s3_transcoded_base_path>/<video_id>/
+
+    While uploading, this function captures the S3 object keys of the
+    generated master playlist and thumbnail so callers can persist them.
+
+    Returns
+    -------
+    UploadedAssets
+        Object keys of important generated assets.
     """
 
-    s3_base_path = (
-        f"{static_config.s3_transcoded_base_path}/{video_id}"
+    s3_prefix = (
+        Path(static_config.s3_transcoded_base_path)
+        / video_id
     )
 
-    upload_directory(local_output_dir, s3_base_path)
+    master_playlist_object_key: str | None = None
+    thumbnail_object_key: str | None = None
+
+    for local_file in output_dir.rglob("*"):
+
+        if not local_file.is_file():
+            continue
+
+        relative_path = local_file.relative_to(output_dir)
+
+        object_key = (
+            s3_prefix / relative_path
+        ).as_posix()
+
+        logger.info(
+            "Uploading %s -> %s",
+            local_file,
+            object_key,
+        )
+
+        s3.upload_file(
+            Filename=str(local_file),
+            Bucket=static_config.s3_video_bucket,
+            Key=object_key,
+        )
+
+        if local_file == local_master_playlist_path:
+            master_playlist_object_key = object_key
+
+        elif local_file == local_thumbnail_path:
+            thumbnail_object_key = object_key
+
+    if master_playlist_object_key is None:
+        raise RuntimeError(
+            "Master playlist was not uploaded."
+        )
+
+    if thumbnail_object_key is None:
+        raise RuntimeError(
+            "Thumbnail was not uploaded."
+        )
+
+    logger.info(
+        "Uploaded transcoded assets successfully."
+    )
+
+    return UploadedAssets(
+        master_playlist_object_key=master_playlist_object_key,
+        thumbnail_object_key=thumbnail_object_key,
+    )
