@@ -5,6 +5,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.video import Video, VideoStatus
+from app.constants.processing import ProcessingStage
+from app.schemas.processing_events import (
+    ProcessingStartedEvent,
+    StageChangedEvent,
+    ProcessingCompletedEvent,
+    ProcessingFailedEvent,
+)
 
 
 class VideoService:
@@ -22,73 +29,65 @@ class VideoService:
 
         return video
 
-    async def mark_processing_started(self, video_id: UUID) -> Video:
-        video = await self._get_video(video_id)
+    async def _save(self,video: Video,) -> None:
+        await self.db.commit()
+        # await self.db.refresh(video)
+        # return video
+        
+
+    async def mark_processing_started(
+        self,
+        event: ProcessingStartedEvent
+    ) -> None:
+        video = await self._get_video(event.video_id)
 
         video.status = VideoStatus.PROCESSING
-        video.current_stage = "DOWNLOADING"
+        video.current_stage = ProcessingStage.DOWNLOADING
         video.processing_started_at = datetime.now(timezone.utc)
 
-        await self.db.commit()
-        await self.db.refresh(video)
-
-        return video
-
+        await self._save(video)
+        
     async def update_processing_stage(
         self,
-        video_id: UUID,
-        current_stage: str,
-    ) -> Video:
-        video = await self._get_video(video_id)
+        event: StageChangedEvent
+    ) -> None:
+        video = await self._get_video(event.video_id)
 
-        video.current_stage = current_stage
+        video.current_stage = event.current_stage
 
-        await self.db.commit()
-        await self.db.refresh(video)
-
-        return video
+        await self._save(video)
 
     async def mark_processing_completed(
         self,
-        video_id: UUID,
-        master_playlist_key: str,
-        thumbnail_object_key: str,
-        duration_ms: int,
-        source_width: int,
-        source_height: int,
-    ) -> Video:
-        video = await self._get_video(video_id)
+        event: ProcessingCompletedEvent
+    ) -> None:
+        video = await self._get_video(event.video_id)
 
         video.status = VideoStatus.COMPLETED
         video.current_stage = None
 
-        video.master_playlist_key = master_playlist_key
-        video.thumbnail_object_key = thumbnail_object_key
-        video.duration_ms = duration_ms
-        video.source_width = source_width
-        video.source_height = source_height
+        video.master_playlist_key = event.master_playlist_object_key
+        video.thumbnail_object_key = event.thumbnail_object_key
+        video.duration_ms = event.duration_ms
+        video.source_width = event.source_width
+        video.source_height = event.source_height
+        video.source_file_size_bytes = event.source_file_size_bytes
+        video.mime_type = event.mime_type
+        
 
         video.processing_completed_at = datetime.now(timezone.utc)
 
-        await self.db.commit()
-        await self.db.refresh(video)
-
-        return video
+        await self._save(video)
 
     async def mark_processing_failed(
         self,
-        video_id: UUID,
-        current_stage: str,
-        error: str,
-    ) -> Video:
-        video = await self._get_video(video_id)
+        event: ProcessingFailedEvent
+    ) -> None:
+        video = await self._get_video(event.video_id)
 
         video.status = VideoStatus.FAILED
-        video.current_stage = current_stage
-        video.last_error = error
+        video.current_stage = event.current_stage
+        video.last_error = event.error
         video.retry_count = (video.retry_count or 0) + 1
 
-        await self.db.commit()
-        await self.db.refresh(video)
-
-        return video
+        await self._save(video)

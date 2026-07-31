@@ -1,4 +1,14 @@
+from app.constants.processing import ProcessingEvent
+
+from app.schemas.processing_events import (
+    ProcessingStartedEvent,
+    StageChangedEvent,
+    ProcessingCompletedEvent,
+    ProcessingFailedEvent
+)
+
 from app.services.video.video_service import VideoService
+
 
 class VideoEventHandler:
 
@@ -6,51 +16,65 @@ class VideoEventHandler:
         self.video_service = VideoService(db)
 
         self.handlers = {
-            "VIDEO_PROCESSING_STARTED": self.handle_processing_started,
-            "VIDEO_PROCESSING_STAGE_CHANGED": self.handle_stage_changed,
-            "VIDEO_PROCESSING_COMPLETED": self.handle_processing_completed,
-            "VIDEO_PROCESSING_FAILED": self.handle_processing_failed,
+            ProcessingEvent.PROCESSING_STARTED: (
+                ProcessingStartedEvent,
+                self.handle_processing_started
+            ),
+            ProcessingEvent.STAGE_CHANGED: (
+                StageChangedEvent,
+                self.handle_stage_changed
+            ),
+            ProcessingEvent.PROCESSING_COMPLETED: (
+                ProcessingCompletedEvent,
+                self.handle_processing_completed
+            ),
+            ProcessingEvent.PROCESSING_FAILED: (
+                ProcessingFailedEvent,
+                self.handle_processing_failed
+            ),
         }
+        
+    async def handle(
+        self,
+        payload: dict
+    ) -> None:
+        """
+        Route an incoming processing event to its handler.
+        """
+        event_type = ProcessingEvent(payload["event_type"])
 
-    async def handle(self, payload: dict):
-
-        event_type = payload["event_type"]
-
-        handler = self.handlers.get(event_type)
+        event_schema, handler = self.handlers.get(event_type)
+        event = event_schema.model_validate(payload)
 
         if handler is None:
             raise ValueError(f"Unknown event: {event_type}")
 
-        await handler(payload)
+        await handler(event)
 
-    async def handle_processing_started(self, payload: dict):
+    async def handle_processing_started(
+        self,
+        event: ProcessingStartedEvent
+    ) -> None:
 
-        await self.video_service.mark_processing_started(
-            video_id=payload["video_id"],
-        )
+        await self.video_service.mark_processing_started(event)
 
-    async def handle_stage_changed(self, payload: dict):
+    async def handle_stage_changed(
+        self,
+        event: StageChangedEvent
+    ) -> None:
 
-        await self.video_service.update_processing_stage(
-            video_id=payload["video_id"],
-            current_stage=payload["current_stage"],
-        )
+        await self.video_service.update_processing_stage(event)
 
-    async def handle_processing_completed(self, payload: dict):
+    async def handle_processing_completed(
+        self,
+        event: ProcessingCompletedEvent
+    ) -> None:
 
-        await self.video_service.mark_processing_completed(
-            video_id=payload["video_id"],
-            master_playlist_key=payload["master_playlist_key"],
-            thumbnail_object_key=payload["thumbnail_object_key"],
-            duration_ms=int(payload["duration_ms"]),
-            source_width=int(payload["source_width"]),
-            source_height=int(payload["source_height"]),
-        )
+        await self.video_service.mark_processing_completed(event)
 
-    async def handle_processing_failed(self, payload: dict):
+    async def handle_processing_failed(
+        self,
+        event: ProcessingFailedEvent
+        ) -> None:
 
-        await self.video_service.mark_processing_failed(
-            video_id=payload["video_id"],
-            current_stage=payload["current_stage"],
-            error=payload["error"],
-        )
+        await self.video_service.mark_processing_failed(event)
