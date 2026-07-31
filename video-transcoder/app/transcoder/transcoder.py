@@ -1,76 +1,328 @@
-import os
+from pathlib import Path
 import asyncio
-from typing import List
+
 from app.core.logger import logger
+from app.schemas.video_metadata import VideoMetadata
+from app.schemas.transcoding_preset import TranscodingPreset
+from app.constants.transcoding_presets import TRANSCODING_PRESETS
 
-FFMPEG_PRESETS = {
-    "240p": "426x240",
-    "360p": "640x360",
-    "480p": "854x480",
-    "720p": "1280x720",
-    "1080p": "1920x1080",
-}
 
-async def transcode_video_to_hls(input_path: str, output_base_dir: str, resolutions: List[str]) -> dict:
+async def transcode_video_to_hls(
+    input_path: Path,
+    output_base_dir: Path,
+    resolutions: list[str],
+    video_metadata: VideoMetadata,
+    progress_callback=None,
+) -> dict[str, Path]:
     """
-    Transcode video to multiple HLS resolutions in parallel.
+    Transcode a source video into multiple HLS variants.
+
+    Responsibilities
+    ----------------
+    - Generate HLS outputs.
+    - Report per-resolution transcoding progress.
+    - Return generated playlist paths.
+
+    This function does NOT:
+    - Update Redis
+    - Publish events
+    - Update database
 
     Args:
-        input_path (str): Path to the downloaded input video.
-        output_base_dir (str): Base dir to save transcoded outputs (e.g. /tmp/hls_outputs/<video_id>)
-        resolutions (List[str]): e.g., ["240p", "360p", "480p"]
+        input_path:
+            Local source video.
+
+        output_base_dir:
+            Directory where HLS outputs will be generated.
+
+        resolutions:
+            Requested output resolutions.
+
+        video_metadata:
+            Metadata extracted from the original source video.
+
+        progress_callback:
+            Optional async callback.
+
+            Signature:
+
+                async callback(
+                    resolution: str,
+                    percentage: float,
+                )
 
     Returns:
-        dict: Mapping of resolution -> HLS .m3u8 output path
+        Mapping of resolution -> generated playlist path.
     """
-    os.makedirs(output_base_dir, exist_ok=True)
-    output_map = {}
 
-    async def _transcode(resolution: str, size: str):
-        output_dir = os.path.join(output_base_dir, resolution)
-        os.makedirs(output_dir, exist_ok=True)
-        output_path = os.path.join(output_dir, "index.m3u8")
-        cmd = [
+    # --------------------------------------------------
+    # Validate inputs
+    # --------------------------------------------------
+    if not input_path.exists():
+        raise FileNotFoundError(
+            f"Input video not found: {input_path}"
+        )
+
+    invalid_resolutions = (
+        set(resolutions) - set( TRANSCODING_PRESETS.keys())
+    )
+
+    if invalid_resolutions:
+        raise ValueError(
+            f"Unsupported resolutions: {invalid_resolutions}"
+        )
+
+    output_base_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    output_map: dict[str, Path] = {}
+
+    async def _transcode_variant(
+        preset: TranscodingPreset,
+    ):
+        """
+        Transcode a single HLS resolution variant.
+        """
+
+        resolution = preset.resolution
+        output_dir = output_base_dir / resolution
+
+        output_dir.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        playlist_path = output_dir / "index.m3u8"
+
+        segment_pattern = (
+            output_dir / "segment_%03d.ts"
+        )
+
+        command = [
             "ffmpeg",
-            "-i", input_path,
-            "-vf", f"scale={size}",
-            "-c:a", "aac",
-            "-ar", "48000",
-            "-c:v", "h264",
-            "-profile:v", "main",
-            "-crf", "20",
-            "-sc_threshold", "0",
-            "-g", "48",
-            "-keyint_min", "48",
-            "-hls_time", "4",
-            "-hls_playlist_type", "vod",
-            "-b:v", "1400k",
-            "-maxrate", "1498k",
-            "-bufsize", "2100k",
-            "-hls_segment_filename", os.path.join(output_dir, "segment_%03d.ts"),
-            output_path
+
+            "-i",
+            str(input_path),
+
+            # Scale
+            "-vf",
+            f"scale={preset.scale}",
+
+            # Audio
+            "-c:a",
+            "aac",
+
+            "-ar",
+            "48000",
+
+            # Video
+            "-c:v",
+            "h264",
+
+            "-profile:v",
+            "main",
+
+            "-crf",
+            "20",
+
+            "-sc_threshold",
+            "0",
+
+            "-g",
+            "48",
+
+            "-keyint_min",
+            "48",
+
+            # HLS
+            "-hls_time",
+            "4",
+
+            "-hls_playlist_type",
+            "vod",
+
+            "-b:v",
+            preset.bitrate,
+
+            "-maxrate",
+            preset.maxrate,
+
+            "-bufsize",
+            preset.bufsize,
+
+            "-hls_segment_filename",
+            str(segment_pattern),
+
+            # Machine-readable progress
+            "-progress",
+            "pipe:1",
+
+            # Less noisy stdout
+            "-nostats",
+
+            str(playlist_path),
         ]
 
-        logger.info(f"[{resolution}] Starting transcoding to {output_path}")
-        process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+        logger.info(
+            "[%s] Starting transcoding",
+            resolution,
         )
-        stdout, stderr = await process.communicate()
+
+        process = await asyncio.create_subprocess_exec(
+            *command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        async def _read_progress():
+            """
+            Read FFmpeg machine-readable progress.
+
+            Example:
+
+                out_time_us=5000000
+                progress=continue
+            """
+
+            while True:
+
+                line = await process.stdout.readline()
+
+                if not line:
+                    break
+
+                decoded = (
+                    line.decode()
+                    .strip()
+                )
+
+                processed_ms = None
+                key, value = decoded.split("=", 1)
+                
+                if key == "out_time_us":
+                    try:
+                        processed_ms = int(value) / 1000
+                    except ValueError:
+                        continue
+                elif key == "out_time_ms":
+                    try:
+                        processed_ms = int(value)
+                    except ValueError:
+                        continue
+                    
+                if processed_ms is None:
+                    continue
+
+                raw_percent = (
+                    processed_ms / video_metadata.duration_ms
+                ) * 100
+
+                percentage = min(raw_percent, 100)
+
+                if progress_callback:
+
+                    await progress_callback(
+                        resolution,
+                        round(percentage, 2),
+                    )
+
+        async def _read_stderr():
+            """
+            Drain stderr so FFmpeg
+            never blocks because
+            of a full buffer.
+
+            We only log stderr if
+            transcoding fails.
+            """
+
+            stderr_lines = []
+
+            while True:
+
+                line = await process.stderr.readline()
+
+                if not line:
+                    break
+
+                stderr_lines.append(
+                    line.decode()
+                )
+
+            return "".join(stderr_lines)
+
+        progress_task = asyncio.create_task(
+            _read_progress()
+        )
+
+        stderr_task = asyncio.create_task(
+            _read_stderr()
+        )
+
+        try:
+
+            await process.wait()
+
+            await progress_task
+
+            stderr_output = await stderr_task
+
+        except asyncio.CancelledError:
+
+            process.kill()
+
+            raise
 
         if process.returncode != 0:
-            logger.error(f"[{resolution}] Transcoding failed: {stderr.decode()}")
-            raise RuntimeError(f"FFmpeg failed for {resolution}")
 
-        logger.info(f"[{resolution}] Transcoding completed: {output_path}")
-        output_map[resolution] = output_path
+            logger.error(
+                "[%s] FFmpeg failed:\n%s",
+                resolution,
+                stderr_output,
+            )
 
+            raise RuntimeError(
+                f"FFmpeg failed for {resolution}"
+            )
+
+        if not playlist_path.exists():
+
+            raise RuntimeError(
+                f"HLS playlist not generated: {playlist_path}"
+            )
+
+        output_map[resolution] = playlist_path
+
+        # Ensure final progress is emitted.
+        if progress_callback:
+
+            await progress_callback(
+                resolution,
+                100.0,
+            )
+
+        logger.info(
+            "[%s] Completed",
+            resolution,
+        )
+
+    # --------------------------------------------------
+    # Launch all requested variants
+    # --------------------------------------------------
     tasks = [
-        _transcode(res, size)
-        for res, size in FFMPEG_PRESETS.items()
-        if res in resolutions
+        _transcode_variant(
+            preset=TRANSCODING_PRESETS[resolution],
+        )
+        for resolution in resolutions
     ]
-    
+
     await asyncio.gather(*tasks)
+
+    logger.info(
+        "Successfully generated %d HLS variants",
+        len(output_map),
+    )
+
     return output_map
