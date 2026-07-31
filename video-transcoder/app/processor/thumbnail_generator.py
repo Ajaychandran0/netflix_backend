@@ -1,8 +1,8 @@
 from pathlib import Path
 import subprocess
 
-from app.constants.video_processing import THUMBNAIL_CAPTURE_PERCENTAGE
-from app.constants.asset_names import (
+from app.constants.processing import THUMBNAIL_CAPTURE_PERCENTAGE
+from app.constants.assets import (
     THUMBNAIL_FILENAME,
     TRANSCODER_OUTPUT_DIR,
 )

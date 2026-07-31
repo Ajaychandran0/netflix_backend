@@ -1,9 +1,5 @@
-from app.constants.processing_progress import (
-    PROCESSING_STAGE_PROGRESS,
-)
-
-from app.constants.processing_stage import (
-    ProcessingStage,
+from app.constants.processing import (
+    ProcessingStage, PROCESSING_STAGE_PROGRESS
 )
 
 

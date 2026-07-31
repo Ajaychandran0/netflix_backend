@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 
 from app.core.logger import logger
-from app.schemas.video_metadata import VideoMetadata
+from app.schemas.video import VideoMetadata
 
 
 def extract_video_metadata(video_path: Path) -> VideoMetadata:

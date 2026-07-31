@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from app.constants.asset_names import MASTER_PLAYLIST_FILENAME
-from app.constants.transcoding_presets import TRANSCODING_PRESETS
+from app.constants.assets import MASTER_PLAYLIST_FILENAME
+from app.constants.transcoding import TRANSCODING_PRESETS
 
 from app.core.logger import logger
 

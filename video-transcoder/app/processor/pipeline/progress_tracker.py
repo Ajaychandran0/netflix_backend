@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 
-from app.constants.transcoding_progress import (
+from app.constants.transcoding import (
     TRANSCODING_WEIGHTS,
     PROGRESS_CHANGE_THRESHOLD,
     PROGRESS_UPDATE_INTERVAL_SECONDS,

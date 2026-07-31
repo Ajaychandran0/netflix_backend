@@ -1,3 +1,7 @@
+'''
+    Later Generated assets Schema, Published assets schemas etc.. can be added here.
+'''
+
 from pydantic import BaseModel
 
 

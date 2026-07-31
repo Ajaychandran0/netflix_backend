@@ -4,30 +4,31 @@ from pathlib import Path
 from app.core.config import dynamic_config
 from app.core.logger import configure_logging, logger
 
-from app.constants.processing_stage import ProcessingStage
-from app.constants.asset_names import TRANSCODER_OUTPUT_DIR
-from app.constants.transcoding_presets import TRANSCODING_RESOLUTIONS
+from app.constants.processing import ProcessingStage
+from app.constants.assets import TRANSCODER_OUTPUT_DIR
+from app.constants.transcoding import TRANSCODING_RESOLUTIONS
 
-from app.schemas.video_events import (
+from app.schemas.events import (
     ProcessingStartedEvent,
     ProcessingCompletedEvent,
     ProcessingFailedEvent,
 )
-from app.schemas.video_metadata import VideoMetadata
-from app.schemas.uploaded_assets import UploadedAssets
+from app.schemas.video import VideoMetadata
+from app.schemas.assets import UploadedAssets
 
-from app.services.video.video_event_publisher import VideoEventPublisher
-from app.transcoder.progress_coordinator import TranscodingProgressCoordinator
-from app.transcoder.status_tracker import StatusTracker
-from app.transcoder.stage_manager import StageManager
+from app.messaging.video_event_publisher import VideoEventPublisher
+from app.tracking.status_tracker import StatusTracker
 
-from app.transcoder.downloader import download_source_video
-from app.transcoder.metadata import extract_video_metadata
-from app.transcoder.transcoder import transcode_video_to_hls
-from app.transcoder.master_playlist_generator import generate_master_playlist
-from app.transcoder.thumbnail_generator import generate_thumbnail
-from app.transcoder.uploader import upload_transcoded_outputs
-from app.transcoder.cleaner import cleanup
+from app.processor.pipeline.progress_coordinator import TranscodingProgressCoordinator
+from app.processor.pipeline.stage_manager import StageManager
+
+from app.processor.downloader import download_source_video
+from app.processor.metadata_extractor import extract_video_metadata
+from app.processor.video_transcoder import transcode_video_to_hls
+from app.processor.master_playlist_generator import generate_master_playlist
+from app.processor.thumbnail_generator import generate_thumbnail
+from app.processor.uploader import upload_transcoded_outputs
+from app.processor.cleaner import cleanup
 
 
 configure_logging()

@@ -2,9 +2,9 @@ from pathlib import Path
 import asyncio
 
 from app.core.logger import logger
-from app.schemas.video_metadata import VideoMetadata
-from app.schemas.transcoding_preset import TranscodingPreset
-from app.constants.transcoding_presets import TRANSCODING_PRESETS
+from app.schemas.video import VideoMetadata
+from app.schemas.transcoding import TranscodingPreset
+from app.constants.transcoding import TRANSCODING_PRESETS
 
 
 async def transcode_video_to_hls(

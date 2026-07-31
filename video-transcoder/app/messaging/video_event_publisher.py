@@ -1,14 +1,14 @@
 from platform_messaging import StreamProducer
 from app.core.config import static_config
 
-from app.schemas.video_events import (
+from app.schemas.events import (
     ProcessingStartedEvent,
     StageChangedEvent,
     ProcessingCompletedEvent,
     ProcessingFailedEvent,
 )
 
-from app.constants.event_types import VideoEventType
+from app.constants.events import VideoEventType
 
 
 class VideoEventPublisher:

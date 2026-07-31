@@ -3,7 +3,7 @@ from pathlib import Path
 from app.core.config import get_s3_client, static_config
 from app.core.logger import logger
 
-from app.schemas.uploaded_assets import UploadedAssets
+from app.schemas.assets import UploadedAssets
 
 s3 = get_s3_client()
 

@@ -1,10 +1,10 @@
 from uuid import UUID
 
-from app.constants.processing_stage import ProcessingStage
-from app.schemas.video_events import StageChangedEvent
-from app.services.video.video_event_publisher import VideoEventPublisher
-from app.transcoder.status_tracker import StatusTracker
-from app.transcoder.progress_utils import get_stage_progress_range
+from app.constants.processing import ProcessingStage
+from app.schemas.events import StageChangedEvent
+from app.messaging.video_event_publisher import VideoEventPublisher
+from app.tracking.status_tracker import StatusTracker
+from app.processor.pipeline.progress_utils import get_stage_progress_range
 
 
 class StageManager:

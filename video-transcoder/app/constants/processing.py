@@ -1,11 +1,24 @@
-from app.constants.processing_stage import (
-    ProcessingStage,
-)
+from enum import StrEnum
 
-from app.schemas.stage_progress import (
-    StageProgressRange,
-)
+from app.schemas.transcoding import StageProgressRange
 
+
+class ProcessingStage(StrEnum):
+    DOWNLOADING = "DOWNLOADING"
+    EXTRACTING_METADATA = "EXTRACTING_METADATA"
+    TRANSCODING = "TRANSCODING"
+    GENERATING_PLAYLIST = "GENERATING_PLAYLIST"
+    GENERATING_THUMBNAIL = "GENERATING_THUMBNAIL"
+    UPLOADING_ASSETS = "UPLOADING_ASSETS"
+    CLEANUP = "CLEANUP"
+    
+
+
+class ProcessingStatus(StrEnum):
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    
 
 PROCESSING_STAGE_PROGRESS = {
     ProcessingStage.DOWNLOADING: StageProgressRange(
@@ -43,3 +56,5 @@ PROCESSING_STAGE_PROGRESS = {
         end=100,
     ),
 }
+
+THUMBNAIL_CAPTURE_PERCENTAGE = 0.20

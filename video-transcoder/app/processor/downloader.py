@@ -3,7 +3,7 @@ from botocore.exceptions import BotoCoreError, ClientError
 from app.core.logger import logger
 
 from app.core.config import static_config, get_s3_client
-from app.constants.asset_names import SOURCE_VIDEO_DIR
+from app.constants.assets import SOURCE_VIDEO_DIR
 
 def download_source_video(
     object_key: str,

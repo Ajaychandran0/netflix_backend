@@ -1,9 +1,9 @@
 from app.core.logger import logger
-from app.constants.processing_stage import ProcessingStage
+from app.constants.processing import ProcessingStage
 
-from app.transcoder.progress_tracker import TranscodingProgressTracker
-from app.transcoder.status_tracker import StatusTracker
-from app.transcoder.progress_utils import map_progress_to_stage
+from app.processor.pipeline.progress_tracker import TranscodingProgressTracker
+from app.tracking.status_tracker import StatusTracker
+from app.processor.pipeline.progress_utils import map_progress_to_stage
 
 class TranscodingProgressCoordinator:
     """
