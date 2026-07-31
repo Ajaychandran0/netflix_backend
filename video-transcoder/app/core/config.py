@@ -23,7 +23,6 @@ class StaticSettings(BaseSettings):
     redis_status_prefix: str = Field(default="video:status", env="REDIS_STATUS_PREFIX")
 
     # other settings
-    temp_dir: Path = Field(default=Path("./tmp_videos"), env="TEMP_DIR")
     video_events_stream: str = Field(default="video:events:stream", env="VIDEO_EVENTS_STREAM")
 
     s3_transcoded_base_path: str = Field(

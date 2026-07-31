@@ -1,8 +1,9 @@
 from pathlib import Path 
 from botocore.exceptions import BotoCoreError, ClientError
-from app.core.config import static_config, get_s3_client
 from app.core.logger import logger
 
+from app.core.config import static_config, get_s3_client
+from app.constants.asset_names import SOURCE_VIDEO_DIR
 
 def download_source_video(
     object_key: str,
@@ -23,7 +24,7 @@ def download_source_video(
 
     if not local_path:
         filename = Path(object_key).name
-        local_path = static_config.temp_dir / filename
+        local_path = SOURCE_VIDEO_DIR / filename
     else:
         local_path = Path(local_path)
 
