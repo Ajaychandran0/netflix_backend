@@ -4,33 +4,50 @@
 Move to a background deletion queue.
 Keep deleted file in a “quarantine” bucket for X hours (if user reports an error).
 Add a retry logic if S3 delete fails.
+
 """
 
-import boto3
-from app.core.config import settings
+from app.core.config import get_s3_client, static_config
 from app.core.logger import logger
 
-s3 = boto3.client(
-    "s3",
-    endpoint_url=settings.s3_endpoint_url,
-    aws_access_key_id=settings.aws_access_key_id,
-    aws_secret_access_key=settings.aws_secret_access_key,
-    region_name=settings.aws_region,
-)
+
+s3 = get_s3_client()
 
 
-def delete_temp_upload(file_key: str):
+def cleanup(
+    upload_path: str,
+) -> None:
     """
-    Deletes the original uploaded video from the uploads location in S3/MinIO.
+    Perform cleanup after successful video processing.
+
+    Current responsibilities:
+    - Delete the original uploaded video from the temporary bucket.
 
     Args:
-        file_key (str): Path relative to bucket (e.g., "uploads/test.mp4")
+        upload_path:
+            Object key of the original uploaded video inside the
+            temporary upload bucket.
     """
+
     try:
-        s3.delete_object(Bucket=settings.s3_temp_bucket, Key=file_key)
         logger.info(
-            f"Deleted original uploaded file: s3://{settings.s3_temp_bucket}/{file_key}"
+            "Deleting original upload: s3://%s/%s",
+            static_config.s3_temp_bucket,
+            upload_path,
         )
-    except Exception as e:
-        logger.error(f"Failed to delete original upload: {file_key} - {e}")
-        # Don't raise, since upload already succeeded
+
+        s3.delete_object(
+            Bucket=static_config.s3_temp_bucket,
+            Key=upload_path,
+        )
+
+        logger.info(
+            "Original upload deleted successfully."
+        )
+
+    except Exception:
+        logger.exception(
+            "Failed to delete original upload: %s",
+            upload_path,
+        )
+        raise
