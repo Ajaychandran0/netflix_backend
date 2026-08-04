@@ -1,9 +1,10 @@
+import enum
 import uuid
+
 from sqlalchemy import String, Column, DateTime, ForeignKey, Integer, Enum
 from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.sql import func
-from app.db.base import Base
-import enum
+
+from app.db.models.base import BaseModel
 
 
 class UploadStatus(str, enum.Enum):
@@ -14,7 +15,7 @@ class UploadStatus(str, enum.Enum):
     FAILED = "FAILED"
 
 
-class UploadSession(Base):
+class UploadSession(BaseModel):
     __tablename__ = "upload_sessions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
@@ -31,5 +32,3 @@ class UploadSession(Base):
     status = Column(Enum(UploadStatus), default=UploadStatus.INITIATED, nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=True)  # For cleanup job
     upload_completed_at = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())

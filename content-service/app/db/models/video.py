@@ -1,9 +1,10 @@
+import enum
 import uuid
+
 from sqlalchemy import String, Text, Enum, Integer, BigInteger, Column, DateTime
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.sql import func
-from app.db.base import Base
-import enum
+
+from app.db.models.base import BaseModel
 
 
 class VideoStatus(str, enum.Enum):
@@ -13,7 +14,7 @@ class VideoStatus(str, enum.Enum):
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
 
-class Video(Base):
+class Video(BaseModel):
     __tablename__ = "videos"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
@@ -39,9 +40,6 @@ class Video(Base):
     last_error = Column(Text, nullable=True)
     processing_started_at = Column(DateTime(timezone=True), nullable=True)
     processing_completed_at = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    deleted_at = Column(DateTime(timezone=True), nullable=True)
 
 
 '''
