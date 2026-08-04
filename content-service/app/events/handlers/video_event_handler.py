@@ -7,7 +7,7 @@ from app.schemas.processing_events import (
     ProcessingFailedEvent
 )
 
-from app.services.video.video_service import VideoService
+from app.services.video_service import VideoService
 
 
 class VideoEventHandler:
