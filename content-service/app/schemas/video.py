@@ -1,36 +1,40 @@
-from pydantic import BaseModel, Field
-from uuid import UUID
-from typing import Optional
 from datetime import datetime
-from enum import Enum
+from uuid import UUID
 
-class VideoStatus(str, Enum):
-    UPLOADING = "UPLOADING"
-    QUEUED = "QUEUED"
-    PROCESSING = "PROCESSING"
-    COMPLETED = "COMPLETED"
-    FAILED = "FAILED"
+from pydantic import BaseModel
 
-class VideoBase(BaseModel):
-    title: str
-    description: Optional[str] = None
-    user_id: UUID
+from app.constants.video import VideoStatus
 
-class VideoCreate(VideoBase):
-    pass  # Same fields as VideoBase
 
-class VideoURL(VideoCreate):
+class VideoSummary(BaseModel):
     id: UUID
-    presigned_url: Optional[str]
-    upload_path: Optional[str]
+
+    title: str
+
+    thumbnail_url: str | None
+
+    duration_ms: int | None
+
     status: VideoStatus
+
     created_at: datetime
-    updated_at: Optional[datetime]
+     
+    
+class VideoResponse(VideoSummary):
+    description: str | None
+    
+    owner_id: UUID
 
-class VideoOut(VideoURL):
-    hls_playlist_url: Optional[str]
-    thumbnail_object_key: Optional[str]
-    duration: Optional[float]
+    source_width: int | None
+    source_height: int | None
 
-    class Config:
-        orm_mode = True
+
+class VideoListResponse(BaseModel):
+    items: list[VideoSummary]
+
+    total: int
+
+    page: int
+
+    page_size: int
+  
