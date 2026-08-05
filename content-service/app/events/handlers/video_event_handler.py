@@ -7,13 +7,13 @@ from app.schemas.events.processing import (
     VideoProcessingFailedEvent
 )
 
-from app.services.video_service import VideoService
+from app.services.processing_service import VideoProcessingService
 
 
 class VideoEventHandler:
 
     def __init__(self, db):
-        self.video_service = VideoService(db)
+        self.video_service = VideoProcessingService(db)
 
         self.handlers = {
             ProcessingEvent.PROCESSING_STARTED: (
