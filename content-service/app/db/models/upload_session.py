@@ -1,18 +1,10 @@
-import enum
 import uuid
 
 from sqlalchemy import String, Column, DateTime, ForeignKey, Integer, Enum
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 
 from app.db.models.base import BaseModel
-
-
-class UploadStatus(str, enum.Enum):
-    INITIATED = "INITIATED"
-    IN_PROGRESS = "IN_PROGRESS"
-    COMPLETED = "COMPLETED"
-    ABORTED = "ABORTED"
-    FAILED = "FAILED"
+from app.constants.upload import UploadStatus
 
 
 class UploadSession(BaseModel):

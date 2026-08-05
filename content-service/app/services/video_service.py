@@ -6,11 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.video import Video, VideoStatus
 from app.constants.processing import ProcessingStage
-from app.schemas.processing_events import (
-    ProcessingStartedEvent,
-    StageChangedEvent,
-    ProcessingCompletedEvent,
-    ProcessingFailedEvent,
+from app.schemas.events.processing import (
+    VideoProcessingStartedEvent,
+    VideoProcessingStageChangedEvent,
+    VideoProcessingCompletedEvent,
+    VideoProcessingFailedEvent,
 )
 
 
@@ -37,7 +37,7 @@ class VideoService:
 
     async def mark_processing_started(
         self,
-        event: ProcessingStartedEvent
+        event: VideoProcessingStartedEvent
     ) -> None:
         video = await self._get_video(event.video_id)
 
@@ -49,7 +49,7 @@ class VideoService:
         
     async def update_processing_stage(
         self,
-        event: StageChangedEvent
+        event: VideoProcessingStageChangedEvent
     ) -> None:
         video = await self._get_video(event.video_id)
 
@@ -59,7 +59,7 @@ class VideoService:
 
     async def mark_processing_completed(
         self,
-        event: ProcessingCompletedEvent
+        event: VideoProcessingCompletedEvent
     ) -> None:
         video = await self._get_video(event.video_id)
 
@@ -81,7 +81,7 @@ class VideoService:
 
     async def mark_processing_failed(
         self,
-        event: ProcessingFailedEvent
+        event: VideoProcessingFailedEvent
     ) -> None:
         video = await self._get_video(event.video_id)
 

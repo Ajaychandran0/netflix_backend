@@ -1,18 +1,11 @@
-import enum
 import uuid
 
 from sqlalchemy import String, Text, Enum, Integer, BigInteger, Column, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.db.models.base import BaseModel
+from app.constants.video import VideoStatus
 
-
-class VideoStatus(str, enum.Enum):
-    UPLOADING = "UPLOADING"
-    QUEUED = "QUEUED"
-    PROCESSING = "PROCESSING"
-    COMPLETED = "COMPLETED"
-    FAILED = "FAILED"
 
 class Video(BaseModel):
     __tablename__ = "videos"

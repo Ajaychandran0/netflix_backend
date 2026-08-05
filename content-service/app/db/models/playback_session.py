@@ -1,4 +1,3 @@
-import enum
 import uuid
 
 from sqlalchemy import (
@@ -12,12 +11,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.db.models.base import BaseModel
-
-
-class PlaybackSessionStatus(str, enum.Enum):
-    ACTIVE = "ACTIVE"
-    EXPIRED = "EXPIRED"
-    REVOKED = "REVOKED"
+from app.constants.playback import PlaybackSessionStatus
 
 
 class PlaybackSession(

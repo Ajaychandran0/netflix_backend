@@ -1,18 +1,24 @@
 from uuid import UUID
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.constants.processing import ProcessingStage
 
-class ProcessingStartedEvent(BaseModel):
+
+
+class BaseEvent(BaseModel):
+    model_config = ConfigDict(frozen=True)
+    
+    
+class VideoProcessingStartedEvent(BaseEvent):
     video_id: UUID
 
 
-class StageChangedEvent(BaseModel):
+class VideoProcessingStageChangedEvent(BaseEvent):
     video_id: UUID
     current_stage: ProcessingStage
 
 
-class ProcessingCompletedEvent(BaseModel):
+class VideoProcessingCompletedEvent(BaseEvent):
     video_id: UUID
 
     master_playlist_object_key: str
@@ -25,7 +31,7 @@ class ProcessingCompletedEvent(BaseModel):
     mime_type: str | None
 
 
-class ProcessingFailedEvent(BaseModel):
+class VideoProcessingFailedEvent(BaseEvent):
     video_id: UUID
 
     current_stage: ProcessingStage

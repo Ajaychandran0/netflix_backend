@@ -1,10 +1,10 @@
 from app.constants.processing import ProcessingEvent
 
-from app.schemas.processing_events import (
-    ProcessingStartedEvent,
-    StageChangedEvent,
-    ProcessingCompletedEvent,
-    ProcessingFailedEvent
+from app.schemas.events.processing import (
+    VideoProcessingStartedEvent,
+    VideoProcessingStageChangedEvent,
+    VideoProcessingCompletedEvent,
+    VideoProcessingFailedEvent
 )
 
 from app.services.video_service import VideoService
@@ -17,19 +17,19 @@ class VideoEventHandler:
 
         self.handlers = {
             ProcessingEvent.PROCESSING_STARTED: (
-                ProcessingStartedEvent,
+                VideoProcessingStartedEvent,
                 self.handle_processing_started
             ),
             ProcessingEvent.STAGE_CHANGED: (
-                StageChangedEvent,
+                VideoProcessingStageChangedEvent,
                 self.handle_stage_changed
             ),
             ProcessingEvent.PROCESSING_COMPLETED: (
-                ProcessingCompletedEvent,
+                VideoProcessingCompletedEvent,
                 self.handle_processing_completed
             ),
             ProcessingEvent.PROCESSING_FAILED: (
-                ProcessingFailedEvent,
+                VideoProcessingFailedEvent,
                 self.handle_processing_failed
             ),
         }
@@ -53,28 +53,28 @@ class VideoEventHandler:
 
     async def handle_processing_started(
         self,
-        event: ProcessingStartedEvent
+        event: VideoProcessingStartedEvent
     ) -> None:
 
         await self.video_service.mark_processing_started(event)
 
     async def handle_stage_changed(
         self,
-        event: StageChangedEvent
+        event: VideoProcessingStageChangedEvent
     ) -> None:
 
         await self.video_service.update_processing_stage(event)
 
     async def handle_processing_completed(
         self,
-        event: ProcessingCompletedEvent
+        event: VideoProcessingCompletedEvent
     ) -> None:
 
         await self.video_service.mark_processing_completed(event)
 
     async def handle_processing_failed(
         self,
-        event: ProcessingFailedEvent
+        event: VideoProcessingFailedEvent
         ) -> None:
 
         await self.video_service.mark_processing_failed(event)

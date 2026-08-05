@@ -1,10 +1,10 @@
-from pydantic import BaseModel, UUID4, Field
+from pydantic import BaseModel, Field
 from typing import Optional
-
+from uuid import UUID
 
 class VideoUploadEvent(BaseModel):
-    video_id: UUID4
-    user_id: UUID4
+    video_id: UUID
+    user_id: UUID
     upload_path: str
     title: str
     thumbnail_object_key: Optional[str] = None

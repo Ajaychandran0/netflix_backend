@@ -1,6 +1,7 @@
-from pydantic import BaseModel, UUID4, EmailStr
+from pydantic import BaseModel, EmailStr
+from uuid import UUID
 
 class UserContext(BaseModel):
-    id: UUID4
+    id: UUID
     email: EmailStr
     role: str

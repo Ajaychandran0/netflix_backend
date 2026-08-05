@@ -1,15 +1,13 @@
-from app.schemas.video import VideoCreate, VideoURL
 from app.schemas.user import UserContext
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from app.core.utils.s3 import generate_presigned_url
 from app.core.utils.s3_services import S3UploadService
 from app.core.utils.response import api_response
 from uuid import uuid4
-from app.schemas.video_upload import (
+from app.schemas.upload import (
     InitiateUploadRequest,
     InitiateUploadResponse,
-    CompleteUploadPayload,
+    CompleteUploadRequest,
     CompleteUploadResponse,
 )
 from fastapi.encoders import jsonable_encoder
@@ -74,40 +72,9 @@ async def initiate_upload_session(
     )
 
 
-# For single video uploads
-async def create_video_with_presigned_url(
-    db: AsyncSession, video_in: VideoCreate
-) -> VideoURL:
-    presigned_url = generate_presigned_url(video_in.title)
-
-    new_video = Video(
-        title=video_in.title,
-        description=video_in.description,
-        user_id=video_in.user_id,
-        upload_path=presigned_url["upload_path"],
-        status=VideoStatus.UPLOADING,
-    )
-
-    db.add(new_video)
-    await db.commit()
-    await db.refresh(new_video)
-
-    return VideoURL(
-        id=new_video.id,
-        title=new_video.title,
-        description=new_video.description,
-        user_id=new_video.user_id,
-        status=new_video.status,
-        upload_path=presigned_url["upload_path"],
-        presigned_url=presigned_url["presigned_url"],
-        created_at=new_video.created_at,
-        updated_at=new_video.updated_at,
-    )
-
-
-# # For completing multipart uploads
+# For completing multipart uploads
 async def complete_upload_session(
-    db: AsyncSession, payload: CompleteUploadPayload, user: UserContext
+    db: AsyncSession, payload: CompleteUploadRequest, user: UserContext
 ) -> CompleteUploadResponse:
     # Get upload session
     result = await db.execute(
