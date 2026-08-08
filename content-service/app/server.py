@@ -7,6 +7,7 @@ from app.core.config.env import settings
 from app.routes.docs import register_docs_routes
 from app.routes.v1.upload import router as upload_router
 from app.routes.v1.videos import router as video_router
+from app.routes.v1.playback import router as playback_router
 
 
 
@@ -33,5 +34,7 @@ def create_app() -> FastAPI:
 
     app.include_router(upload_router, prefix="/api/content", tags=["Uploads"])
     app.include_router(video_router, prefix="/api/content", tags=["Videos"])
+    app.include_router(playback_router, prefix="/api/content", tags=["Playback"])
+
 
     return app
