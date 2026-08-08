@@ -5,6 +5,7 @@ from sqlalchemy.dialects.postgresql import UUID
 
 from app.db.models.base import BaseModel
 from app.constants.video import VideoStatus
+from app.core.config.env import settings
 
 
 class Video(BaseModel):
@@ -17,7 +18,19 @@ class Video(BaseModel):
     status = Column(Enum(VideoStatus), nullable=False, default=VideoStatus.UPLOADING)
     upload_path = Column(String, nullable=True)
     master_playlist_key = Column(String, nullable=True)
+    
     thumbnail_object_key = Column(String, nullable=True)
+    
+    @property
+    def thumbnail_url(self) -> str | None:
+        if self.thumbnail_object_key is None:
+            return None
+
+        return (
+            f"{settings.PUBLIC_THUMBNAIL_BASE_URL}/"
+            f"{self.thumbnail_object_key}"
+        )
+        
     duration_ms = Column(BigInteger, nullable=True)
     source_file_size_bytes = Column(BigInteger, nullable=True)
     mime_type = Column(String(255), nullable=True)

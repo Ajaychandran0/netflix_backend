@@ -5,6 +5,12 @@ from pydantic import BaseModel
 
 from app.constants.video import VideoStatus
 
+class VideoListQuery(BaseModel):
+    page: int = 1
+    page_size: int = 20
+    search: str | None = None
+    status: VideoStatus | None = None
+
 
 class VideoSummary(BaseModel):
     id: UUID
