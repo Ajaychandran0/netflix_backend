@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings
 from typing import Literal
 
+
 class Settings(BaseSettings):
     APP_ENV: Literal["development", "staging", "production"] = "development"
     API_DOCS_USER: str
@@ -22,6 +23,21 @@ class Settings(BaseSettings):
     AWS_REGION:str
     S3_TEMP_BUCKET:str
     S3_VIDEO_BUCKET: str
+    S3_THUMBNAIL_BUCKET: str
+    
+    @property
+    def PUBLIC_THUMBNAIL_BASE_URL(self) -> str:
+        return (
+            f"{self.AWS_S3_PUBLIC_ENDPOINT}/"
+            f"{self.S3_THUMBNAIL_BUCKET}"
+        )
+        
+    @property
+    def PUBLIC_VIDEO_BASE_URL(self) -> str:
+        return (
+            f"{self.AWS_S3_PUBLIC_ENDPOINT}/"
+            f"{self.S3_VIDEO_BUCKET}"
+        )
 
     class Config:
         env_file = ".env"
