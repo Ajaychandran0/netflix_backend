@@ -8,10 +8,7 @@ from app.schemas.upload import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
-from app.services.upload_service import (
-    initiate_upload_session,
-    complete_upload_session,
-)
+from app.services.upload_service import UploadService
 
 
 router = APIRouter()
@@ -23,7 +20,11 @@ async def initiate_upload(
     db: AsyncSession = Depends(get_db),
     user: UserContext = Depends(get_user_context),
 ):
-    return await initiate_upload_session(db=db, payload=payload, user=user)
+    upload_service = UploadService(db=db)
+    return await upload_service.initiate_upload_session(
+        payload=payload,
+        user=user
+    )
 
 
 @router.post("/complete_upload")
@@ -32,7 +33,11 @@ async def complete_upload(
     db: AsyncSession = Depends(get_db),
     user: UserContext = Depends(get_user_context),
 ):
-    return await complete_upload_session(db=db, payload=payload, user=user)
+    upload_service = UploadService(db=db)
+    return await upload_service.complete_upload_session(
+        payload=payload,
+        user=user
+    )
 
 
 @router.post("/cancel_upload")

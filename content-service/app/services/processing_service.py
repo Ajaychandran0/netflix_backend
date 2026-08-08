@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.video import Video, VideoStatus
 from app.constants.processing import ProcessingStage
+
 from app.schemas.events.processing import (
     VideoProcessingStartedEvent,
     VideoProcessingStageChangedEvent,
