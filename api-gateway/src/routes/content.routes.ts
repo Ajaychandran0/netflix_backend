@@ -5,5 +5,14 @@ const router = express.Router();
 
 router.post('/initiate_upload', baseService.forward('content-service', 'post', '/api/content/initiate_upload'));
 router.post('/complete_upload', baseService.forward('content-service', 'post', '/api/content/complete_upload'));
+router.get('/videos/mine', baseService.forward('content-service', 'get', '/api/content/videos/mine'));
+router.put(
+    '/videos/:videoId',
+    baseService.forward('content-service', 'put', (req) => `/api/content/videos/${req.params.videoId}`),
+);
+router.delete(
+    '/videos/:videoId',
+    baseService.forward('content-service', 'delete', (req) => `/api/content/videos/${req.params.videoId}`),
+);
 
 export default router;

@@ -10,11 +10,12 @@ class BaseService {
     forward = (
         serviceName: Services,
         method: typeof this.httpMethods[number],
-        path: string
+        path: string | ((req: Request) => string)
     ) => {
         console.log(`Forwarding request to ${serviceName} using ${method.toUpperCase()} method at path: ${path}`);
         return asyncErrorHandler(async (req: Request, res: Response, next: NextFunction) => {
             const client = serviceMap[serviceName];
+            const targetPath = typeof path === 'function' ? path(req) : path;
 
             // Extract user information from req.user
             const userHeaders = req.user
@@ -30,22 +31,27 @@ class BaseService {
                 ...req.headers,
                 ...userHeaders,
             };
+            // The gateway wraps upstream payloads, so upstream ETags cannot
+            // validate the gateway response. Forwarding browser validators can
+            // make Express return a body-less 304 that Axios treats as an error.
+            delete headers['if-none-match'];
+            delete headers['if-modified-since'];
 
             let axiosResponse;
 
             if (method === 'get' || method === 'delete') {
-                axiosResponse = await client[method](path, {
+                axiosResponse = await client[method](targetPath, {
                     params: req.query,
                     headers
                 });
             } else {
-                axiosResponse = await client[method](path, req.body, {
+                axiosResponse = await client[method](targetPath, req.body, {
                     headers
                 });
             }
 
             const { data } = axiosResponse;
-            console.log(`Response from ${serviceName}:`, data);
+            console.log(`Response from ${serviceName} (${method.toUpperCase()} ${targetPath})`);
 
             apiResponse({
                 res,

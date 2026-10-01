@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.constants.video import VideoStatus
 
@@ -43,4 +43,22 @@ class VideoListResponse(BaseModel):
     page: int
 
     page_size: int
-  
+
+
+class UploadStatusSummary(BaseModel):
+    """The status information an uploader needs while a video is in flight."""
+
+    id: UUID
+    title: str
+    description: str | None
+    status: VideoStatus
+    current_stage: str | None
+    last_error: str | None
+    thumbnail_url: str | None
+    duration_ms: int | None
+    created_at: datetime
+
+
+class VideoUpdateRequest(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    description: str | None = None

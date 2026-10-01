@@ -1,5 +1,7 @@
 from uuid import UUID
+from datetime import datetime, timezone
 from fastapi.encoders import jsonable_encoder
+from fastapi import HTTPException
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,7 +16,10 @@ from app.schemas.video import (
     VideoListResponse,
     VideoResponse,
     VideoSummary,
+    UploadStatusSummary,
+    VideoUpdateRequest,
 )
+from app.schemas.user import UserContext
 
 
 class VideoService:
@@ -52,7 +57,8 @@ class VideoService:
     ) -> VideoResponse:
         statement = select(Video).where(
             Video.id == video_id,
-            Video.status == VideoStatus.COMPLETED
+            Video.status == VideoStatus.COMPLETED,
+            Video.deleted_at.is_(None),
         )
 
         result = await self.db.execute(statement)
@@ -65,6 +71,108 @@ class VideoService:
             data=jsonable_encoder(self._to_video_response(video)),
             message="Video retrieved successfully",
             code="GET_VIDEO_SUCCESS",
+        )
+
+    async def update_user_video(
+        self,
+        *,
+        video_id: UUID,
+        user: UserContext,
+        payload: VideoUpdateRequest,
+    ):
+        self._require_admin(user)
+        updates = payload.model_dump(exclude_unset=True)
+        if not updates:
+            raise HTTPException(status_code=422, detail="At least one video field must be provided.")
+        if "title" in updates:
+            if updates["title"] is None or not updates["title"].strip():
+                raise HTTPException(status_code=422, detail="Title cannot be empty.")
+            updates["title"] = updates["title"].strip()
+
+        video = await self._get_owned_video(video_id=video_id, user_id=user.id)
+        for field, value in updates.items():
+            setattr(video, field, value)
+        await self.db.commit()
+        await self.db.refresh(video)
+
+        result = self._to_upload_status(video)
+        return api_response(
+            data=jsonable_encoder(result),
+            message="Video updated successfully",
+            code="UPDATE_VIDEO_SUCCESS",
+        )
+
+    async def delete_user_video(self, *, video_id: UUID, user: UserContext):
+        self._require_admin(user)
+        video = await self._get_owned_video(video_id=video_id, user_id=user.id)
+        video.deleted_at = datetime.now(timezone.utc)
+        await self.db.commit()
+        return api_response(
+            data={"id": str(video_id)},
+            message="Video deleted successfully",
+            code="DELETE_VIDEO_SUCCESS",
+        )
+
+    @staticmethod
+    def _require_admin(user: UserContext) -> None:
+        if user.role.upper() != "ADMIN":
+            raise HTTPException(status_code=403, detail="Admin access is required.")
+
+    async def _get_owned_video(self, *, video_id: UUID, user_id: UUID) -> Video:
+        result = await self.db.execute(
+            select(Video).where(
+                Video.id == video_id,
+                Video.user_id == user_id,
+                Video.deleted_at.is_(None),
+            )
+        )
+        video = result.scalar_one_or_none()
+        if video is None:
+            raise HTTPException(status_code=404, detail="Video not found.")
+        return video
+
+    @staticmethod
+    def _to_upload_status(video: Video) -> UploadStatusSummary:
+        return UploadStatusSummary(
+            id=video.id,
+            title=video.title,
+            description=video.description,
+            status=video.status,
+            current_stage=video.current_stage,
+            last_error=video.last_error,
+            thumbnail_url=video.thumbnail_url,
+            duration_ms=video.duration_ms,
+            created_at=video.created_at,
+        )
+
+    async def list_user_uploads(self, *, user_id: UUID) -> list[UploadStatusSummary]:
+        """Return every upload for its owner, including in-progress and failed jobs."""
+        statement = (
+            select(Video)
+            .where(Video.user_id == user_id, Video.deleted_at.is_(None))
+            .order_by(Video.created_at.desc())
+        )
+        result = await self.db.execute(statement)
+
+        uploads = [
+            UploadStatusSummary(
+                id=video.id,
+                title=video.title,
+                description=video.description,
+                status=video.status,
+                current_stage=video.current_stage,
+                last_error=video.last_error,
+                thumbnail_url=video.thumbnail_url,
+                duration_ms=video.duration_ms,
+                created_at=video.created_at,
+            )
+            for video in result.scalars().all()
+        ]
+
+        return api_response(
+            data=jsonable_encoder(uploads),
+            message="Your uploads retrieved successfully",
+            code="LIST_USER_UPLOADS_SUCCESS",
         )
 
 
@@ -108,7 +216,8 @@ class VideoService:
         query: VideoListQuery,
     ) -> Select[tuple[Video]]:
         statement = select(Video).where(
-            Video.status == VideoStatus.COMPLETED
+            Video.status == VideoStatus.COMPLETED,
+            Video.deleted_at.is_(None),
         )
 
         if query.search:

@@ -72,7 +72,7 @@ services:
     #   - "${USER_SERVICE_PORT}:${USER_SERVICE_PORT}"
     volumes:
       - ./user-service:/app # For live coding in dev mode
-      - /app/node_modules # Ensuring node_modules are properly handled (keep it isolated from host node_modules)
+      - user_node_modules:/app/node_modules # Keep dependencies isolated from host node_modules
       # docker-compose exec user-service npm install bcrypt (to install bcrypt in the container)
 
     env_file:
@@ -98,7 +98,7 @@ services:
       - "${CONTENT_SERVICE_PORT}:${CONTENT_SERVICE_PORT}"
     volumes:
       - ./content-service:/app  # for reload to work
-      - /app/venv
+      - content_venv:/app/venv
     env_file:
       - ./content-service/.env
     depends_on:
@@ -121,7 +121,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock # For Docker-in-Docker functionality, binds the host's Docker socket with the container
       - ./video-processing-service:/app
-      - /app/.venv
+      - video_processing_venv:/app/.venv
     env_file:
       - ./video-processing-service/.env
     depends_on:
@@ -143,7 +143,7 @@ services:
       - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
     volumes:
       - ./api-gateway:/app # For live coding in dev mode
-      - /app/node_modules 
+      - gateway_node_modules:/app/node_modules
 
     env_file:
       - ./api-gateway/.env 
@@ -159,6 +159,14 @@ volumes:
     driver: local # Make sure data is persisted
   minio_data:
     driver: local # Make sure data is persisted
+  user_node_modules:
+    driver: local
+  content_venv:
+    driver: local
+  video_processing_venv:
+    driver: local
+  gateway_node_modules:
+    driver: local
 
 
 networks:
