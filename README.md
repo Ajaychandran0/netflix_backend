@@ -74,7 +74,7 @@ sequenceDiagram
     Content->>Queue: Publish processing job
     Queue->>Processor: Consume job
     Processor->>Worker: Start transcoder container
-    Worker->>Store: Download source; upload HLS assets and poster
+    Worker->>Store: Download source, upload HLS assets and poster
     Worker->>Queue: Publish processing events
     Queue->>Content: Persist status, metadata, and asset keys
     Browser->>Gateway: Browse published videos / request playback
