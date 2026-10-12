@@ -3,7 +3,8 @@ from sqlalchemy.orm import sessionmaker
 from app.core.config.env import settings
 from typing import AsyncGenerator
 
-isEcho = settings.APP_ENV != "production"
+# isEcho = settings.APP_ENV != "production"
+isEcho = False  # Disable SQL echoing for production and development environments
 engine = create_async_engine(settings.DATABASE_URL, future=True, echo=isEcho)
 AsyncSessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 

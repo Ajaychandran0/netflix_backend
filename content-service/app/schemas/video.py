@@ -1,36 +1,73 @@
-from pydantic import BaseModel, Field
-from uuid import UUID
-from typing import Optional
 from datetime import datetime
-from enum import Enum
+from uuid import UUID
 
-class VideoStatus(str, Enum):
-    UPLOADING = "UPLOADING"
-    QUEUED = "QUEUED"
-    PROCESSING = "PROCESSING"
-    COMPLETED = "COMPLETED"
-    FAILED = "FAILED"
+from pydantic import BaseModel, Field
 
-class VideoBase(BaseModel):
-    title: str
-    description: Optional[str] = None
-    user_id: UUID
+from app.constants.video import VideoStatus
 
-class VideoCreate(VideoBase):
-    pass  # Same fields as VideoBase
+class VideoListQuery(BaseModel):
+    page: int = 1
+    page_size: int = 20
+    search: str | None = None
+    status: VideoStatus | None = None
 
-class VideoURL(VideoCreate):
+
+class VideoSummary(BaseModel):
     id: UUID
-    presigned_url: Optional[str]
-    upload_path: Optional[str]
+
+    title: str
+
+    thumbnail_url: str | None
+
+    duration_ms: int | None
+
     status: VideoStatus
+
     created_at: datetime
-    updated_at: Optional[datetime]
+     
+    
+class VideoResponse(VideoSummary):
+    description: str | None
+    
+    owner_id: UUID
 
-class VideoOut(VideoURL):
-    hls_playlist_url: Optional[str]
-    thumbnail_object_key: Optional[str]
-    duration: Optional[float]
+    source_width: int | None
+    source_height: int | None
 
-    class Config:
-        orm_mode = True
+
+class VideoListResponse(BaseModel):
+    items: list[VideoSummary]
+
+    total: int
+
+    page: int
+
+    page_size: int
+
+
+class UploadStatusSummary(BaseModel):
+    """The status information an uploader needs while a video is in flight."""
+
+    id: UUID
+    title: str
+    description: str | None
+    status: VideoStatus
+    current_stage: str | None
+    last_error: str | None
+    thumbnail_url: str | None
+    duration_ms: int | None
+    created_at: datetime
+
+
+class VideoProgressResponse(BaseModel):
+    video_id: UUID
+    status: VideoStatus
+    stage: str | None
+    progress: int
+    thumbnail_url: str | None
+    updated_at: datetime | None
+
+
+class VideoUpdateRequest(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    description: str | None = None

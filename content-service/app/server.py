@@ -1,9 +1,14 @@
 from fastapi import FastAPI
-from app.core.config.env import settings
+
 from app.core.middlewares.cors import add_middlewares
-from app.routes.docs import register_docs_routes
-from app.routes.v1.index import router
 from app.core.middlewares.lifespan import lifespan
+from app.core.config.env import settings
+
+from app.routes.docs import register_docs_routes
+from app.routes.v1.upload import router as upload_router
+from app.routes.v1.videos import router as video_router
+from app.routes.v1.playback import router as playback_router
+
 
 
 def create_app() -> FastAPI:
@@ -27,6 +32,9 @@ def create_app() -> FastAPI:
     async def root():
         return {"message": "Welcome to the Content Service API"}
 
-    app.include_router(router, prefix="/api/content", tags=["Content"])
+    app.include_router(upload_router, prefix="/api/content", tags=["Uploads"])
+    app.include_router(video_router, prefix="/api/content", tags=["Videos"])
+    app.include_router(playback_router, prefix="/api/content", tags=["Playback"])
+
 
     return app

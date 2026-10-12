@@ -63,8 +63,9 @@ class TranscodingProgressCoordinator:
             overall_progress,
         )
         logger.info(
-            "Overall transcoding progress: %.2f%%",
+            "Transcoding stage progress: %.2f%% (pipeline progress: %.2f%%)",
             overall_progress,
+            pipeline_progress,
         )
 
         await self.status_tracker.update_progress(

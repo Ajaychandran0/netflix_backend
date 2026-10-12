@@ -60,7 +60,7 @@ async def main():
         # --------------------------------------------------
         publisher = VideoEventPublisher()
 
-        tracker = StatusTracker(video_id)
+        tracker = StatusTracker(video_id, dynamic_config.attempt_id)
 
         stage_manager = StageManager(
             video_id=video_id,

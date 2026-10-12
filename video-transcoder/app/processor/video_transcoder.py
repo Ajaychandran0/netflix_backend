@@ -63,6 +63,9 @@ async def transcode_video_to_hls(
             f"Input video not found: {input_path}"
         )
 
+    if video_metadata.duration_ms <= 0:
+        raise ValueError("Video duration must be greater than zero to track transcoding progress.")
+
     invalid_resolutions = (
         set(resolutions) - set( TRANSCODING_PRESETS.keys())
     )
@@ -186,47 +189,56 @@ async def transcode_video_to_hls(
                 progress=continue
             """
 
+            output_time_us = None
+
+            async def publish_progress() -> None:
+                if output_time_us is None or not progress_callback:
+                    return
+
+                processed_ms = output_time_us / 1000
+                raw_percent = processed_ms / video_metadata.duration_ms * 100
+                # FFmpeg can report the full media duration before it has
+                # finished muxing and closing the HLS playlist. Reserve 100%
+                # for the successful process exit and playlist check below.
+                percentage = max(0.0, min(raw_percent, 99.0))
+                await progress_callback(resolution, round(percentage, 2))
+
             while True:
-
                 line = await process.stdout.readline()
-
                 if not line:
                     break
 
-                decoded = (
-                    line.decode()
-                    .strip()
-                )
-
-                processed_ms = None
-                key, value = decoded.split("=", 1)
-                
-                if key == "out_time_us":
-                    try:
-                        processed_ms = int(value) / 1000
-                    except ValueError:
-                        continue
-                elif key == "out_time_ms":
-                    try:
-                        processed_ms = int(value)
-                    except ValueError:
-                        continue
-                    
-                if processed_ms is None:
+                decoded = line.decode().strip()
+                if "=" not in decoded:
                     continue
 
-                raw_percent = (
-                    processed_ms / video_metadata.duration_ms
-                ) * 100
+                key, value = decoded.split("=", 1)
 
-                percentage = min(raw_percent, 100)
+                if key in {"out_time_us", "out_time_ms"}:
+                    # FFmpeg's legacy out_time_ms field is also in
+                    # microseconds, despite its name. Prefer the correctly
+                    # named out_time_us value when both are present.
+                    try:
+                        parsed_time_us = int(value)
+                    except ValueError:
+                        continue
+                    if parsed_time_us >= 0 and (key == "out_time_us" or output_time_us is None):
+                        output_time_us = parsed_time_us
+                elif key == "out_time" and output_time_us is None:
+                    try:
+                        hours, minutes, seconds = value.split(":")
+                        output_time_us = int(
+                            (int(hours) * 3600 + int(minutes) * 60 + float(seconds)) * 1_000_000
+                        )
+                    except ValueError:
+                        continue
+                elif key == "progress":
+                    await publish_progress()
+                    output_time_us = None
 
-                if progress_callback:
-
-                    await progress_callback(
-                        resolution,
-                        round(percentage, 2),
-                    )
+            # Process a final partial block if FFmpeg closed stdout before its
+            # terminating progress marker.
+            await publish_progress()
 
         async def _read_stderr():
             """

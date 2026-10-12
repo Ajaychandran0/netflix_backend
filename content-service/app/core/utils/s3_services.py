@@ -60,6 +60,18 @@ class S3UploadService:
             logger.error(f"Failed to complete multipart upload: {e}")
             raise
 
+    def object_exists(self, object_name: str) -> bool:
+        """Check whether a multipart upload already completed after a lost response."""
+        try:
+            self.s3_internal.head_object(Bucket=self.bucket_name, Key=object_name)
+            return True
+        except ClientError as e:
+            code = e.response.get("Error", {}).get("Code")
+            status = e.response.get("ResponseMetadata", {}).get("HTTPStatusCode")
+            if code in {"404", "NoSuchKey", "NotFound"} or status == 404:
+                return False
+            raise
+
     def abort_multipart_upload(self, object_name: str, upload_id: str):
         try:
             self.s3_internal.abort_multipart_upload(
@@ -85,4 +97,3 @@ class S3UploadService:
         )
 
         return {"presigned_url": url, "upload_path": key}
-

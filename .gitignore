@@ -3,6 +3,11 @@ logs
 *.log
 npm-debug.log*
 
+# python
+__pycache__/
+*.py[cod]
+
+# Node.js
 node_modules
 dist
 dist-ssr
@@ -20,3 +25,5 @@ dist-ssr
 *.sw?
 
 .env
+CONVENTIONS.md
+.aider*

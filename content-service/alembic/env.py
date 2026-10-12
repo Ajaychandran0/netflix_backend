@@ -6,8 +6,8 @@ from sqlalchemy import create_engine
 
 from alembic import context
 from app.db.base import Base
-from app.db.models.video import Video
-from app.db.models.upload_session import UploadSession
+from app.db.models import *
+
 from app.core.config.env import settings
 
 SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL.replace("asyncpg", "psycopg2")
@@ -27,7 +27,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = None
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

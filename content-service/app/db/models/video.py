@@ -1,19 +1,14 @@
 import uuid
+
 from sqlalchemy import String, Text, Enum, Integer, BigInteger, Column, DateTime
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.sql import func
-from app.db.base import Base
-import enum
+
+from app.db.models.base import BaseModel
+from app.constants.video import VideoStatus
+from app.core.config.env import settings
 
 
-class VideoStatus(str, enum.Enum):
-    UPLOADING = "UPLOADING"
-    QUEUED = "QUEUED"
-    PROCESSING = "PROCESSING"
-    COMPLETED = "COMPLETED"
-    FAILED = "FAILED"
-
-class Video(Base):
+class Video(BaseModel):
     __tablename__ = "videos"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
@@ -23,7 +18,19 @@ class Video(Base):
     status = Column(Enum(VideoStatus), nullable=False, default=VideoStatus.UPLOADING)
     upload_path = Column(String, nullable=True)
     master_playlist_key = Column(String, nullable=True)
+    
     thumbnail_object_key = Column(String, nullable=True)
+    
+    @property
+    def thumbnail_url(self) -> str | None:
+        if self.thumbnail_object_key is None:
+            return None
+
+        return (
+            f"{settings.PUBLIC_THUMBNAIL_BASE_URL}/"
+            f"{self.thumbnail_object_key}"
+        )
+        
     duration_ms = Column(BigInteger, nullable=True)
     source_file_size_bytes = Column(BigInteger, nullable=True)
     mime_type = Column(String(255), nullable=True)
@@ -39,9 +46,10 @@ class Video(Base):
     last_error = Column(Text, nullable=True)
     processing_started_at = Column(DateTime(timezone=True), nullable=True)
     processing_completed_at = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    deleted_at = Column(DateTime(timezone=True), nullable=True)
+    # Identifies the currently authorized processing run. Events from an older
+    # run are ignored even if they arrive after a retry has started.
+    processing_attempt_id = Column(UUID(as_uuid=True), nullable=True, index=True)
+    last_processing_event_sequence = Column(Integer, nullable=False, default=-1, server_default="-1")
 
 
 '''

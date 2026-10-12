@@ -2,7 +2,9 @@ from pathlib import Path
 from botocore.exceptions import BotoCoreError, ClientError
 from app.core.logger import logger
 
-from app.core.config import static_config, get_s3_client
+from app.core.s3_client import get_s3_client
+from app.core.config import static_config
+
 from app.constants.assets import SOURCE_VIDEO_DIR
 
 def download_source_video(

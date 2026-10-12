@@ -7,9 +7,9 @@ Add a retry logic if S3 delete fails.
 
 """
 
-from app.core.config import get_s3_client, static_config
+from app.core.s3_client import get_s3_client
+from app.core.config import static_config
 from app.core.logger import logger
-
 
 s3 = get_s3_client()
 

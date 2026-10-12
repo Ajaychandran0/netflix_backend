@@ -8,7 +8,7 @@ TRANSCODER_OUTPUT_DIR = TEMP_DIR / "output"
 
 MASTER_PLAYLIST_FILENAME = "master.m3u8"
 
-THUMBNAIL_FILENAME = "thumbnail.jpg"
+THUMBNAIL_FILENAME = "poster.jpg"
 
 SEGMENT_FILENAME = "segment_%03d.ts"
 

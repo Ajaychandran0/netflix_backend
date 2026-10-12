@@ -1,36 +1,41 @@
 from app.constants.processing import ProcessingEvent
 
-from app.schemas.processing_events import (
-    ProcessingStartedEvent,
-    StageChangedEvent,
-    ProcessingCompletedEvent,
-    ProcessingFailedEvent
+from app.schemas.events.processing import (
+    VideoProcessingStartedEvent,
+    VideoProcessingStageChangedEvent,
+    VideoProcessingCompletedEvent,
+    VideoProcessingFailedEvent,
+    VideoProcessingLaunchFailedEvent,
 )
 
-from app.services.video.video_service import VideoService
+from app.services.processing_service import VideoProcessingService
 
 
 class VideoEventHandler:
 
     def __init__(self, db):
-        self.video_service = VideoService(db)
+        self.video_service = VideoProcessingService(db)
 
         self.handlers = {
             ProcessingEvent.PROCESSING_STARTED: (
-                ProcessingStartedEvent,
+                VideoProcessingStartedEvent,
                 self.handle_processing_started
             ),
             ProcessingEvent.STAGE_CHANGED: (
-                StageChangedEvent,
+                VideoProcessingStageChangedEvent,
                 self.handle_stage_changed
             ),
             ProcessingEvent.PROCESSING_COMPLETED: (
-                ProcessingCompletedEvent,
+                VideoProcessingCompletedEvent,
                 self.handle_processing_completed
             ),
             ProcessingEvent.PROCESSING_FAILED: (
-                ProcessingFailedEvent,
+                VideoProcessingFailedEvent,
                 self.handle_processing_failed
+            ),
+            ProcessingEvent.PROCESSING_LAUNCH_FAILED: (
+                VideoProcessingLaunchFailedEvent,
+                self.handle_processing_launch_failed
             ),
         }
         
@@ -42,39 +47,44 @@ class VideoEventHandler:
         Route an incoming processing event to its handler.
         """
         event_type = ProcessingEvent(payload["event_type"])
-
-        event_schema, handler = self.handlers.get(event_type)
-        event = event_schema.model_validate(payload)
-
-        if handler is None:
+        handler_mapping = self.handlers.get(event_type)
+        if handler_mapping is None:
             raise ValueError(f"Unknown event: {event_type}")
 
+        event_schema, handler = handler_mapping
+        event = event_schema.model_validate(payload)
         await handler(event)
 
     async def handle_processing_started(
         self,
-        event: ProcessingStartedEvent
+        event: VideoProcessingStartedEvent
     ) -> None:
 
         await self.video_service.mark_processing_started(event)
 
     async def handle_stage_changed(
         self,
-        event: StageChangedEvent
+        event: VideoProcessingStageChangedEvent
     ) -> None:
 
         await self.video_service.update_processing_stage(event)
 
     async def handle_processing_completed(
         self,
-        event: ProcessingCompletedEvent
+        event: VideoProcessingCompletedEvent
     ) -> None:
 
         await self.video_service.mark_processing_completed(event)
 
     async def handle_processing_failed(
         self,
-        event: ProcessingFailedEvent
+        event: VideoProcessingFailedEvent
         ) -> None:
 
         await self.video_service.mark_processing_failed(event)
+
+    async def handle_processing_launch_failed(
+        self,
+        event: VideoProcessingLaunchFailedEvent,
+    ) -> None:
+        await self.video_service.mark_processing_launch_failed(event)
