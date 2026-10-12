@@ -56,7 +56,14 @@ class TranscodingProgressTracker:
             Do not publish yet.
         """
 
-        self.progress[resolution] = percentage
+        # FFmpeg can report timestamps out of order around segment boundaries.
+        # Keep each rendition monotonic so one stale sample cannot pull the
+        # weighted pipeline percentage backwards.
+        percentage = max(0.0, min(float(percentage), 100.0))
+        self.progress[resolution] = max(
+            self.progress.get(resolution, 0.0),
+            percentage,
+        )
 
         overall_progress = (
             self._calculate_overall_progress()
@@ -121,6 +128,9 @@ class TranscodingProgressTracker:
         another update.
         """
         
+        if current_progress <= self.last_published_progress:
+            return False
+
         if abs(current_progress - self.last_published_progress) < 1:
             return False
 

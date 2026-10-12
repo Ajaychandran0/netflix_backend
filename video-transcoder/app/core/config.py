@@ -33,6 +33,10 @@ class StaticSettings(BaseSettings):
 class DynamicSettings(BaseSettings):
     # Passed via `-e` at container runtime
     video_id: str = Field(env="VIDEO_ID")
+    # Pydantic Settings v2 reads custom environment names through
+    # validation_alias; Field(env=...) is a v1-style declaration and was
+    # silently ignored for this field.
+    attempt_id: str = Field(validation_alias="PROCESSING_ATTEMPT_ID")
     upload_path: str = Field(env="UPLOAD_PATH")
 
     class Config:
@@ -57,4 +61,3 @@ def get_settings() -> tuple[StaticSettings, DynamicSettings]:
     return static, dynamic
 
 static_config, dynamic_config = get_settings()
-    

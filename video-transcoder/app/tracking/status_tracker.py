@@ -10,9 +10,10 @@ class StatusTracker:
     DEFAULT_TTL_SECONDS = 3600          # 1 hour
     COMPLETED_TTL_SECONDS = 600         # 10 minutes
 
-    def __init__(self, video_id: UUID):
+    def __init__(self, video_id: UUID, attempt_id: str):
         self.video_id = str(video_id)
-        self.key = RedisKeys.video_progress(self.video_id)
+        self.attempt_id = str(attempt_id)
+        self.key = RedisKeys.video_progress(self.video_id, self.attempt_id)
 
     async def start(self) -> None:
         """
@@ -35,14 +36,32 @@ class StatusTracker:
 
     async def update_progress(
         self,
-        progress: int,
+        progress: int | float,
     ) -> None:
         """
         Updates only the progress percentage.
         """
         progress = max(0, min(progress, 100))
-
-        await self._save(progress=progress)
+        # Progress callbacks from parallel FFmpeg workers can arrive out of
+        # order. Compare and update atomically so a late callback cannot lower
+        # the visible value.
+        await redis_client.eval(
+            """
+            local current = tonumber(redis.call('HGET', KEYS[1], 'progress') or '0')
+            local incoming = tonumber(ARGV[1])
+            if incoming > current then
+                redis.call('HSET', KEYS[1], 'progress', incoming)
+            end
+            redis.call('HSET', KEYS[1], 'updated_at', ARGV[2])
+            redis.call('EXPIRE', KEYS[1], ARGV[3])
+            return math.max(current, incoming)
+            """,
+            1,
+            self.key,
+            progress,
+            datetime.now(timezone.utc).isoformat(),
+            self.DEFAULT_TTL_SECONDS,
+        )
 
     async def complete(self) -> None:
         """
