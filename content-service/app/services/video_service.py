@@ -203,9 +203,15 @@ class VideoService:
         live = await redis_client.hgetall(progress_key)
         if video.status in {VideoStatus.QUEUED, VideoStatus.PROCESSING}:
             try:
-                live_status = VideoStatus(live.get("status", video.status.value))
+                reported_status = VideoStatus(live.get("status", video.status.value))
             except ValueError:
-                live_status = video.status
+                reported_status = video.status
+
+            live_status = (
+                reported_status
+                if reported_status in {VideoStatus.QUEUED, VideoStatus.PROCESSING}
+                else video.status
+            )
         else:
             # Database terminal state is authoritative if an old worker left a
             # non-terminal Redis hash behind.
@@ -229,6 +235,7 @@ class VideoService:
             status=live_status,
             stage=live.get("stage") or video.current_stage,
             progress=max(0, min(progress, 100)),
+            thumbnail_url=video.thumbnail_url,
             updated_at=updated_at,
         )
         return api_response(

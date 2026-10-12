@@ -9,10 +9,13 @@ from app.core.config.env import settings
 from app.core.utils.response import api_response
 
 from app.constants.video import VideoStatus
+from app.constants.playback import PlaybackSessionStatus
 
 from app.db.models.video import Video
+from app.db.models.playback_session import PlaybackSession
 
 from app.schemas.playback import PlaybackResponse
+from app.schemas.user import UserContext
 
 
 class PlaybackService:
@@ -25,6 +28,7 @@ class PlaybackService:
         self,
         *,
         video_id: UUID,
+        user: UserContext,
     ) -> PlaybackResponse:
 
         # --------------------------------------------------
@@ -47,18 +51,34 @@ class PlaybackService:
             )
 
         # --------------------------------------------------
-        # Generate playback URL. The MVP uses a public video bucket, so this
-        # endpoint is deliberately viewable without an authenticated session.
+        # Authentication is required to request playback and create a
+        # user-linked playback session. The returned media URL still points to
+        # the public MVP bucket, so URL delivery itself is not access-controlled.
         # --------------------------------------------------
 
-        expires_at = datetime.now(timezone.utc) + timedelta(
-            seconds=self.PLAYBACK_SESSION_TTL_SECONDS
+        now = datetime.now(timezone.utc)
+
+        expires_at = (
+            now +
+            timedelta(seconds=self.PLAYBACK_SESSION_TTL_SECONDS)
         )
 
         playback_url = (
             f"{settings.PUBLIC_VIDEO_BASE_URL}/"
             f"{video.master_playlist_key}"
         )
+
+        playback_session = PlaybackSession(
+            user_id=user.id,
+            video_id=video.id,
+            status=PlaybackSessionStatus.ACTIVE,
+            expires_at=expires_at,
+            last_accessed_at=now,
+        )
+
+        self.db.add(playback_session)
+
+        await self.db.commit()
 
         response = PlaybackResponse(
             playback_url=playback_url,

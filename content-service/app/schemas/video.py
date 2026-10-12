@@ -64,6 +64,7 @@ class VideoProgressResponse(BaseModel):
     status: VideoStatus
     stage: str | None
     progress: int
+    thumbnail_url: str | None
     updated_at: datetime | None
 
 

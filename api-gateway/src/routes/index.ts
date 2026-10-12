@@ -9,8 +9,8 @@ const router = Router();
 
 router.use('/auth', authRoutes);
 router.use('/users', authenticate, userRoutes);
-// Published videos are intentionally public. Upload and personal job-state APIs
-// remain behind authentication below.
+// Published catalogue browsing is public. Playback-session creation, uploads,
+// and personal video-management APIs require authentication.
 router.use('/content', publicContentRoutes);
 router.use('/content', authenticate, contentRoutes);
 
