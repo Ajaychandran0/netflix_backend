@@ -1,34 +1,203 @@
 version: '3.9'
 services:
-
-  api-gateway:
-    build: ./api-gateway
-    ports:
-      - "8080:8080"
-    environment:
-      - PORT=8080
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - JWT_SECRET=supersecret
-    depends_on:
-      - redis
+  # ------------------------
+  # Redis
+  # ------------------------
 
   redis:
     image: redis:alpine
+    container_name: redis
+    command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT}:${REDIS_PORT}"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - platform-network
 
+  # ------------------------
+  # Postgres
+  # ------------------------
   postgres:
-    image: postgres:13
+    image: postgres:16.2
+    container_name: postgres
     restart: always
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: pass
-      POSTGRES_DB: netflix_clone
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     volumes:
-      - netflix_pgdata:/var/lib/postgresql/data
+      - netflix_pgdata:/var/lib/postgresql/data # Persist data in case of container restart
+      - ./docker-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d netflix_video_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - platform-network
+
+  # ------------------------
+  # MinIO
+  # ------------------------
+  minio:
+    image: minio/minio
+    container_name: minio
+    ports:
+      - "${MINIO_PORT}:${MINIO_PORT}"
+      - "${MINIO_CONSOLE_PORT}:${MINIO_CONSOLE_PORT}"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER} 
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":${MINIO_CONSOLE_PORT}"
+    networks:
+      - platform-network
+
+  # ------------------------
+  # Video Transcoder
+  # ------------------------
+  video-transcoder:
+    build:
+      context: ./video-transcoder
+    image: video-transcoder
+    volumes:
+      - ./video-transcoder:/app
+
+
+  # ------------------------
+  # User Service
+  # ------------------------
+  user-service:
+    container_name: user-service
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+      target: ${DOCKER_TARGET:-dev} # 'dev' by default, can switch with 'prod'
+    # ports:
+    #   - "${USER_SERVICE_PORT}:${USER_SERVICE_PORT}"
+    volumes:
+      - ./user-service:/app # For live coding in dev mode
+      - user_node_modules:/app/node_modules # Keep dependencies isolated from host node_modules
+      # docker-compose exec user-service npm install bcrypt (to install bcrypt in the container)
+
+    env_file:
+      - ./user-service/.env 
+   
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+    networks:
+      - platform-network
+
+  # ------------------------
+  # Content Service
+  # ------------------------
+  content-service:
+    container_name: content-service
+    build:
+      context: ./content-service
+      dockerfile: Dockerfile
+      # target: ${TARGET:-dev}
+    ports:
+      - "${CONTENT_SERVICE_PORT}:${CONTENT_SERVICE_PORT}"
+    volumes:
+      - ./content-service:/app  # for reload to work
+      - content_venv:/app/venv
+    env_file:
+      - ./content-service/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - platform-network
+
+  # ------------------------
+  # Video Processing Service
+  # ------------------------
+  video-processing-service:
+    container_name: video-processing-service
+    build:
+      context: ./video-processing-service
+      dockerfile: Dockerfile
+      # target: ${TARGET:-dev}
+    
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # For Docker-in-Docker functionality, binds the host's Docker socket with the container
+      - ./video-processing-service:/app
+      - video_processing_venv:/app/.venv
+    env_file:
+      - ./video-processing-service/.env
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - platform-network
+
+  # ------------------------
+  # API Gateway
+  # ------------------------
+  api-gateway:
+    container_name: api-gateway
+    build: 
+      context: ./api-gateway
+      dockerfile: Dockerfile
+      target: ${DOCKER_TARGET:-dev} # 'dev' by default, can switch with 'prod'
+    ports:
+      - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
+    volumes:
+      - ./api-gateway:/app # For live coding in dev mode
+      - gateway_node_modules:/app/node_modules
+
+    env_file:
+      - ./api-gateway/.env 
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - platform-network
 
 volumes:
+  redis_data:
+    driver: local
   netflix_pgdata:
+    driver: local # Make sure data is persisted
+  minio_data:
+    driver: local # Make sure data is persisted
+  user_node_modules:
+    driver: local
+  content_venv:
+    driver: local
+  video_processing_venv:
+    driver: local
+  gateway_node_modules:
+    driver: local
+
+
+networks:
+  platform-network:
+    name: platform-network

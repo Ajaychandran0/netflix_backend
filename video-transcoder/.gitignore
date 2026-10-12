@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.env
+
+# Virtualenv
+venv/
+.env
+.env.*
+
+# Logs
+*.log
+logs/
+
+# VS Code
+.vscode/
+
+# Alembic
+alembic/versions/
+
+# Compiled files
+*.so

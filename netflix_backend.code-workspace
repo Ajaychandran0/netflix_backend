@@ -1,0 +1,20 @@
+{
+  "folders": [
+    {
+      "path": "api-gateway  " ,
+    },
+    {
+      "path": "content-service"
+    },
+    {
+      "path": "user-service"
+    },
+    {
+      "path": "video-processing-service"
+    },
+    {
+      "path": "video-transcoder"
+    }
+  ],
+  "settings": {}
+}
