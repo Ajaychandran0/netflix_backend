@@ -57,6 +57,19 @@ async def list_videos(
     )
 
     
+@router.get("/{video_id}/progress")
+async def get_my_video_progress(
+    video_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[UserContext, Depends(get_user_context)],
+):
+    service = VideoService(db)
+    return await service.get_user_video_progress(
+        video_id=video_id,
+        user_id=user.id,
+    )
+
+
 @router.get("/{video_id}", response_model=VideoResponse)
 async def get_video(
     video_id: UUID,

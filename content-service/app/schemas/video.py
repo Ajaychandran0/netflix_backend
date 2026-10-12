@@ -59,6 +59,14 @@ class UploadStatusSummary(BaseModel):
     created_at: datetime
 
 
+class VideoProgressResponse(BaseModel):
+    video_id: UUID
+    status: VideoStatus
+    stage: str | None
+    progress: int
+    updated_at: datetime | None
+
+
 class VideoUpdateRequest(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=255)
     description: str | None = None
