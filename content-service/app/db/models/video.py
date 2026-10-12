@@ -46,6 +46,10 @@ class Video(BaseModel):
     last_error = Column(Text, nullable=True)
     processing_started_at = Column(DateTime(timezone=True), nullable=True)
     processing_completed_at = Column(DateTime(timezone=True), nullable=True)
+    # Identifies the currently authorized processing run. Events from an older
+    # run are ignored even if they arrive after a retry has started.
+    processing_attempt_id = Column(UUID(as_uuid=True), nullable=True, index=True)
+    last_processing_event_sequence = Column(Integer, nullable=False, default=-1, server_default="-1")
 
 
 '''

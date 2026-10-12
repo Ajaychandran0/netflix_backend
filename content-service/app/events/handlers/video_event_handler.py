@@ -4,7 +4,8 @@ from app.schemas.events.processing import (
     VideoProcessingStartedEvent,
     VideoProcessingStageChangedEvent,
     VideoProcessingCompletedEvent,
-    VideoProcessingFailedEvent
+    VideoProcessingFailedEvent,
+    VideoProcessingLaunchFailedEvent,
 )
 
 from app.services.processing_service import VideoProcessingService
@@ -32,6 +33,10 @@ class VideoEventHandler:
                 VideoProcessingFailedEvent,
                 self.handle_processing_failed
             ),
+            ProcessingEvent.PROCESSING_LAUNCH_FAILED: (
+                VideoProcessingLaunchFailedEvent,
+                self.handle_processing_launch_failed
+            ),
         }
         
     async def handle(
@@ -42,13 +47,12 @@ class VideoEventHandler:
         Route an incoming processing event to its handler.
         """
         event_type = ProcessingEvent(payload["event_type"])
-
-        event_schema, handler = self.handlers.get(event_type)
-        event = event_schema.model_validate(payload)
-
-        if handler is None:
+        handler_mapping = self.handlers.get(event_type)
+        if handler_mapping is None:
             raise ValueError(f"Unknown event: {event_type}")
 
+        event_schema, handler = handler_mapping
+        event = event_schema.model_validate(payload)
         await handler(event)
 
     async def handle_processing_started(
@@ -78,3 +82,9 @@ class VideoEventHandler:
         ) -> None:
 
         await self.video_service.mark_processing_failed(event)
+
+    async def handle_processing_launch_failed(
+        self,
+        event: VideoProcessingLaunchFailedEvent,
+    ) -> None:
+        await self.video_service.mark_processing_launch_failed(event)

@@ -1,5 +1,5 @@
 from uuid import UUID
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.constants.processing import ProcessingStage
 
@@ -7,8 +7,12 @@ from app.constants.processing import ProcessingStage
 
 class BaseEvent(BaseModel):
     model_config = ConfigDict(frozen=True)
-    
-    
+
+    event_id: UUID
+    attempt_id: UUID
+    event_sequence: int = Field(ge=0)
+
+
 class VideoProcessingStartedEvent(BaseEvent):
     video_id: UUID
 
@@ -35,4 +39,9 @@ class VideoProcessingFailedEvent(BaseEvent):
     video_id: UUID
 
     current_stage: ProcessingStage
+    error: str
+
+
+class VideoProcessingLaunchFailedEvent(BaseEvent):
+    video_id: UUID
     error: str
