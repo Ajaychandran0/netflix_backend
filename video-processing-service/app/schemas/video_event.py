@@ -4,6 +4,7 @@ from uuid import UUID
 
 class VideoUploadEvent(BaseModel):
     video_id: UUID
+    attempt_id: UUID
     user_id: UUID
     upload_path: str
     title: str

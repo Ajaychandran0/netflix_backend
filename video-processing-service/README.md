@@ -1,6 +1,6 @@
 # Video Processing Service
 
-This service is the bridge between an uploaded source object and an isolated FFmpeg worker. It consumes video-processing jobs from Redis Streams and starts a `video-transcoder` Docker container for each job.
+This service is the bridge between an uploaded source object and an isolated FFmpeg worker. It consumes video-processing jobs from Redis Streams and starts an attempt-scoped `video-transcoder` Docker container. Redelivery uses the same attempt-specific container name and will not launch a second worker.
 
 ## Runtime responsibilities
 
