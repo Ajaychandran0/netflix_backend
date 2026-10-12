@@ -6,14 +6,27 @@ export class RedisClient {
   static client: ReturnType<typeof createClient>;
 
   static init() {
+    if (this.client) return;
+
     this.client = createClient({
       url: `redis://${env.REDIS_HOST}:${env.REDIS_PORT}`
     });
 
-    this.client.connect().then(() => {
+    // node-redis emits connection errors separately from the connect promise.
+    // An unhandled `error` event can terminate the service process when Redis
+    // is restarted, leaving the container up but the HTTP listener gone.
+    this.client.on('error', (err) => {
+      logger.error({ err }, 'Redis connection error; the client will reconnect');
+    });
+    this.client.on('reconnecting', () => {
+      logger.warn('Redis connection lost; reconnecting');
+    });
+    this.client.on('ready', () => {
       logger.info('🔌 Connected to Redis');
-    }).catch((err) => {
-      logger.error('❌ Error connecting to Redis:', err);
+    });
+
+    void this.client.connect().catch((err) => {
+      logger.error({ err }, 'Initial Redis connection failed');
     });
   }
 
