@@ -25,7 +25,7 @@ Protected routes require:
 Authorization: Bearer <JWT>
 ```
 
-The JWT is issued by the User Service and verified by the gateway. Public catalogue and playback routes do not require a token in the MVP because media is intentionally public for testing.
+The JWT is issued by the User Service and verified by the gateway. The published catalogue is public. Playback-session creation and media playback URL requests require a token.
 
 ## Identity
 
@@ -85,9 +85,9 @@ Example `data`:
 }
 ```
 
-### `GET /api/content/videos/:videoId/playback` — public
+### `GET /api/content/videos/:videoId/playback` — protected
 
-Returns the public HLS master playlist location and an expiry timestamp. The expiry is metadata in the public-bucket MVP; it is not an access control mechanism until signed media URLs are introduced.
+Any authenticated user may request playback for a published video; ownership is not required. The request creates an `ACTIVE` playback-session record linked to that user and video, then returns the HLS master playlist location and an expiry timestamp. The expiry is metadata in the public-bucket MVP; it does not protect the media URL or files.
 
 ```json
 {
@@ -116,6 +116,7 @@ The response returns `upload_id`, `video_id`, and ordered part records containin
 ### `POST /api/content/complete_upload` — protected
 
 Completes the multipart upload and queues video processing.
+The upload session must belong to the caller and each numbered part must be supplied once. Repeating completion for an already completed session is safe; processing job delivery is asynchronous through a durable outbox.
 
 ```json
 {
@@ -130,6 +131,21 @@ Completes the multipart upload and queues video processing.
 ### `GET /api/content/videos/mine` — protected
 
 Lists the caller's videos, including active and failed processing jobs. Each item has `status`, `current_stage`, optional `last_error`, thumbnail URL, duration, title, and description.
+
+### `GET /api/content/videos/:videoId/progress` — protected
+
+Returns live worker progress for a video owned by the caller. The dashboard polls only videos in `QUEUED` or `PROCESSING`; progress is scoped to the current processing attempt.
+
+```json
+{
+  "video_id": "uuid",
+  "status": "PROCESSING",
+  "stage": "TRANSCODING",
+  "progress": 47,
+  "thumbnail_url": null,
+  "updated_at": "2026-10-05T10:30:00Z"
+}
+```
 
 ### `PUT /api/content/videos/:videoId` — protected
 
@@ -152,4 +168,4 @@ Present as a placeholder only. It does not yet abort object-store multipart uplo
 - The frontend currently exposes uploading to `ADMIN` users, but the upload endpoints themselves are JWT-protected rather than role-enforced. Add server-side publisher authorization before treating this as a security boundary.
 - Store the JWT locally only for this MVP; an httpOnly secure cookie is safer for a production browser application.
 - Use an HLS-capable player. Safari can play HLS natively; other major browsers generally need `hls.js`.
-- Poll `GET /videos/mine` while an upload is active. Redis carries more granular progress, but no browser progress endpoint exists yet.
+- Fetch `GET /api/content/videos/mine` once on dashboard entry, then poll `GET /api/content/videos/:videoId/progress` only for videos in `QUEUED` or `PROCESSING`. Stop polling when each video is terminal.

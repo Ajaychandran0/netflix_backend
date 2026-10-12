@@ -27,7 +27,7 @@ flowchart LR
 
 ### API Gateway
 
-The gateway validates Bearer JWTs on protected routes, adds `x-user-id`, `x-user-email`, and `x-user-role` for downstream services, and forwards requests. Published catalogue and playback routes are public; upload and personal video-management routes are protected.
+The gateway validates Bearer JWTs on protected routes, adds `x-user-id`, `x-user-email`, and `x-user-role` for downstream services, and forwards requests. Published catalogue browsing is public; playback-session creation, uploads, and personal video-management routes are protected.
 
 ### User Service
 
@@ -55,10 +55,10 @@ Downloads the source, extracts metadata, creates concurrent HLS renditions, prod
 | HLS playlists and segments | `S3_VIDEO_BUCKET` | Public in the local MVP |
 | Posters | `S3_THUMBNAIL_BUCKET` | Public in the local MVP |
 | Jobs/events | Redis Streams | Consumer-group delivery, not a long-term audit store |
-| Fine-grained progress | Redis hash `video:status:<video-id>` | One-hour default TTL |
+| Fine-grained progress | Redis hash `video:progress:<video-id>` | One-hour default TTL |
 
 ## State and production boundaries
 
-The intended database state model is `UPLOADING` → `QUEUED` → `PROCESSING` → `COMPLETED` or `FAILED`. `current_stage` supplies the detail while a worker runs. Processing stages are documented in [Event contracts](event-contracts.md).
+The intended database state model is `UPLOADING` → `QUEUED` → `PROCESSING` → `COMPLETED` or `FAILED`. `current_stage` supplies the detail while a worker runs. Each run has a `processing_attempt_id`; ordered lifecycle events are deduplicated and stale attempts cannot mutate the current state. Upload completion and job intent are committed together through the transactional outbox. Processing stages are documented in [Event contracts](event-contracts.md).
 
-The local MVP uses public media buckets and gateway-propagated identity headers. In production, make internal services private, authenticate service-to-service calls, use a private media origin/CDN, enforce upload-session ownership, and move infrastructure provisioning out of application startup.
+The local MVP uses public media buckets and gateway-propagated identity headers. Playback authentication currently protects session creation and URL issuance only; it does not protect direct access to HLS assets. In production, make internal services private, authenticate service-to-service calls, use a private media origin/CDN, enforce upload-session ownership, and move infrastructure provisioning out of application startup.
