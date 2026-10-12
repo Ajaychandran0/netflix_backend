@@ -7,8 +7,17 @@ services:
   redis:
     image: redis:alpine
     container_name: redis
+    command: ["redis-server", "--appendonly", "yes"]
     ports:
       - "${REDIS_PORT}:${REDIS_PORT}"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
     networks:
       - platform-network
 
@@ -27,6 +36,12 @@ services:
     volumes:
       - netflix_pgdata:/var/lib/postgresql/data # Persist data in case of container restart
       - ./docker-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d netflix_video_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
     networks:
       - platform-network
 
@@ -79,8 +94,11 @@ services:
       - ./user-service/.env 
    
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 
     networks:
       - platform-network
@@ -102,9 +120,13 @@ services:
     env_file:
       - ./content-service/.env
     depends_on:
-      - postgres
-      - redis
-      - minio 
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    restart: unless-stopped
     networks:
       - platform-network
 
@@ -125,7 +147,8 @@ services:
     env_file:
       - ./video-processing-service/.env
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - platform-network
@@ -148,13 +171,19 @@ services:
     env_file:
       - ./api-gateway/.env 
     depends_on:
-      - redis
-      - postgres
-      - user-service
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+    restart: unless-stopped
     networks:
       - platform-network
 
 volumes:
+  redis_data:
+    driver: local
   netflix_pgdata:
     driver: local # Make sure data is persisted
   minio_data:
