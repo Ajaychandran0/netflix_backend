@@ -6,6 +6,8 @@ from app.core.utils.bucket_service import BucketService
 from app.core.config.env import settings
 
 from app.events.consumers.video_event_consumer import start_video_event_consumer
+from app.events.outbox_dispatcher import run_outbox_dispatcher
+from app.core.redis_client import redis_client
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -59,12 +61,21 @@ async def lifespan(app: FastAPI):
     app.state.video_consumer_task = asyncio.create_task(
         start_video_event_consumer()
     )
+    app.state.outbox_dispatcher_task = asyncio.create_task(
+        run_outbox_dispatcher()
+    )
     
     yield
 
     app.state.video_consumer_task.cancel()
     with suppress(asyncio.CancelledError):
         await app.state.video_consumer_task
+
+    app.state.outbox_dispatcher_task.cancel()
+    with suppress(asyncio.CancelledError):
+        await app.state.outbox_dispatcher_task
+
+    await redis_client.aclose()
 
     # 🔻 Shutdown logic (optional)
     # For example: clean up temporary files, close DB connections, etc.

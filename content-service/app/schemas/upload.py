@@ -20,8 +20,8 @@ class InitiateUploadResponse(BaseModel):
 
 
 class PartETag(BaseModel):
-    part_number: int
-    etag: str
+    part_number: int = Field(..., gt=0)
+    etag: str = Field(..., min_length=1)
 
 
 class CompleteUploadRequest(BaseModel):

@@ -1,32 +1,36 @@
-from app.schemas.user import UserContext
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from app.core.utils.s3_services import S3UploadService
-from app.core.utils.response import api_response
+from datetime import datetime, timezone
 from uuid import uuid4
+
+from botocore.exceptions import ClientError
+from fastapi import HTTPException
+from fastapi.encoders import jsonable_encoder
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.config.env import settings
+from app.core.utils.response import api_response
+from app.core.utils.s3_services import S3UploadService
+from app.db.models.outbox_event import OutboxEvent
+from app.db.models.upload_session import UploadSession, UploadStatus
+from app.db.models.video import Video, VideoStatus
 from app.schemas.upload import (
-    InitiateUploadRequest,
-    InitiateUploadResponse,
     CompleteUploadRequest,
     CompleteUploadResponse,
+    InitiateUploadRequest,
+    InitiateUploadResponse,
 )
-from fastapi.encoders import jsonable_encoder
-from app.events.publishers.video_event_publisher import VideoProcessingEventPublisher
+from app.schemas.user import UserContext
 
-# models
-from app.db.models.video import Video, VideoStatus
-from app.db.models.upload_session import UploadSession, UploadStatus
 
 class UploadService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    # For multipart uploads
     async def initiate_upload_session(
-        self, 
+        self,
         *,
         payload: InitiateUploadRequest,
-        user: UserContext
+        user: UserContext,
     ) -> InitiateUploadResponse:
         s3 = S3UploadService()
         object_key = f"uploads/{uuid4()}_{payload.filename}"
@@ -36,22 +40,24 @@ class UploadService:
 
         # Step 2: Generate presigned URLs for each part
         urls = s3.generate_presigned_urls(
-            object_name=object_key, upload_id=upload_id, total_parts=payload.total_parts
+            object_name=object_key,
+            upload_id=upload_id,
+            total_parts=payload.total_parts,
         )
         # Step 3: Insert into UploadSession + Video tables
-        new_video = Video(
+        video = Video(
             title=payload.title,
             description=payload.description,
             user_id=user.id,
             status=VideoStatus.UPLOADING,
             upload_path=object_key,
-            original_filename=payload.filename
+            original_filename=payload.filename,
         )
-        self.db.add(new_video)
-        await self.db.flush()  # get video.id without commit
+        self.db.add(video)
+        await self.db.flush()
 
-        upload_session = UploadSession(
-            video_id=new_video.id,
+        session = UploadSession(
+            video_id=video.id,
             user_id=user.id,
             upload_path=object_key,
             part_size=5 * 1024 * 1024,
@@ -60,19 +66,18 @@ class UploadService:
             upload_id=upload_id,
             parts_uploaded=[],
         )
-        self.db.add(upload_session)
+        self.db.add(session)
         await self.db.commit()
-        await self.db.refresh(new_video)
-        await self.db.refresh(upload_session)
 
-        result = InitiateUploadResponse(
-            upload_id=upload_session.upload_id,
-            video_id=new_video.id,
+        await self.db.refresh(video)
+        await self.db.refresh(session)
+        response = InitiateUploadResponse(
+            upload_id=session.upload_id,
+            video_id=video.id,
             parts=urls,
         )
-
         return api_response(
-            data=jsonable_encoder(result),
+            data=jsonable_encoder(response),
             message="Upload session initiated",
             code="UPLOAD_SESSION_INITIATED",
         )
@@ -83,53 +88,131 @@ class UploadService:
         self,
         *,
         payload: CompleteUploadRequest,
-        user: UserContext
+        user: UserContext,
     ) -> CompleteUploadResponse:
-        # Get upload session
-        result = await self.db.execute(
-            select(UploadSession).where(
+        # Locking serializes duplicate completion requests. Filtering by owner
+        # prevents an authenticated user from completing another user's upload.
+        session = await self.db.scalar(
+            select(UploadSession)
+            .where(
                 UploadSession.upload_id == payload.upload_id,
                 UploadSession.video_id == payload.video_id,
+                UploadSession.user_id == user.id,
             )
+            .with_for_update()
         )
-        session = result.scalar_one_or_none()
-        if not session:
-            raise ValueError("Invalid upload session")
+        if session is None:
+            raise HTTPException(status_code=404, detail="Upload session not found")
 
-        # Finalize on S3
-        s3 = S3UploadService()
-        parts = [{"ETag": p.etag, "PartNumber": p.part_number} for p in payload.parts]
-
-        s3.complete_multipart_upload(
-            object_name=session.upload_path, upload_id=payload.upload_id, parts=parts
+        video = await self.db.scalar(
+            select(Video)
+            .where(Video.id == session.video_id, Video.user_id == user.id)
+            .with_for_update()
         )
+        if video is None:
+            raise HTTPException(status_code=404, detail="Upload session not found")
+        if session.status == UploadStatus.ABORTED:
+            raise HTTPException(status_code=409, detail="Upload session was aborted")
+        if session.status not in {UploadStatus.INITIATED, UploadStatus.IN_PROGRESS, UploadStatus.COMPLETED}:
+            raise HTTPException(status_code=409, detail="Upload session cannot be completed")
 
-        # Update DB
-        session.status = UploadStatus.COMPLETED
-        video = await self.db.get(Video, payload.video_id)
-        if video:
-            video.status = VideoStatus.COMPLETED
-        await self.db.commit()
+        if session.status != UploadStatus.COMPLETED and video.status != VideoStatus.UPLOADING:
+            raise HTTPException(status_code=409, detail="Video is not awaiting upload completion")
+        if session.status == UploadStatus.COMPLETED and video.status in {
+            VideoStatus.COMPLETED,
+            VideoStatus.FAILED,
+        }:
+            response = CompleteUploadResponse(
+                video_id=payload.video_id,
+                upload_id=payload.upload_id,
+            )
+            return api_response(
+                data=jsonable_encoder(response),
+                message="Upload completed successfully",
+                code="UPLOAD_VIDEO_COMPLETED",
+            )
 
-        publisher = VideoProcessingEventPublisher()
-        publisher.enqueue_video(
-            {
-                "video_id": str(video.id),
-                "upload_path": video.upload_path,
-                "user_id": str(video.user_id),
-                "title": video.title,
-                "thumbnail_object_key": video.thumbnail_object_key,
-            }
+        if session.status != UploadStatus.COMPLETED:
+            part_numbers = [part.part_number for part in payload.parts]
+            expected_parts = set(range(1, session.total_parts + 1))
+            if len(part_numbers) != session.total_parts or set(part_numbers) != expected_parts:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Uploaded parts must include each session part exactly once",
+                )
+
+            s3 = S3UploadService()
+            parts = [
+                {"ETag": part.etag, "PartNumber": part.part_number}
+                for part in sorted(payload.parts, key=lambda item: item.part_number)
+            ]
+            try:
+                s3.complete_multipart_upload(
+                    object_name=session.upload_path,
+                    upload_id=session.upload_id,
+                    parts=parts,
+                )
+            except ClientError as exc:
+                # S3 can finish the upload while the API response or subsequent
+                # DB commit is lost. A retry then sees NoSuchUpload; confirm the
+                # final object exists before treating that as success.
+                code = exc.response.get("Error", {}).get("Code")
+                if code not in {"NoSuchUpload", "404", "NotFound"}:
+                    raise
+                if not s3.object_exists(session.upload_path):
+                    raise
+
+            session.status = UploadStatus.COMPLETED
+            session.upload_completed_at = datetime.now(timezone.utc)
+            video.status = VideoStatus.QUEUED
+            video.processing_attempt_id = uuid4()
+            video.processing_started_at = None
+            video.processing_completed_at = None
+            video.current_stage = None
+            video.last_error = None
+            video.last_processing_event_sequence = -1
+
+        attempt_id = video.processing_attempt_id
+        if attempt_id is None:
+            # Covers records created before processing attempts were introduced.
+            attempt_id = uuid4()
+            video.processing_attempt_id = attempt_id
+            video.last_processing_event_sequence = -1
+
+        # The unique idempotency key means a repeated completion cannot create
+        # a second job for the same attempt. The state change and job intent are
+        # committed atomically; Redis delivery is handled by the outbox relay.
+        outbox_key = f"video:{video.id}:attempt:{attempt_id}"
+        existing_outbox = await self.db.scalar(
+            select(OutboxEvent.id).where(OutboxEvent.idempotency_key == outbox_key)
         )
-        print(f"Enqueued video processing event for video_id: {video.id}")
+        if existing_outbox is None:
+            self.db.add(
+                OutboxEvent(
+                    topic=settings.VIDEO_PROCESSING_STREAM,
+                    idempotency_key=outbox_key,
+                    payload={
+                        "video_id": str(video.id),
+                        "attempt_id": str(attempt_id),
+                        "upload_path": video.upload_path,
+                        "user_id": str(video.user_id),
+                        "title": video.title,
+                        "thumbnail_object_key": video.thumbnail_object_key or "",
+                    },
+                )
+            )
+        try:
+            await self.db.commit()
+        except Exception:
+            await self.db.rollback()
+            raise
 
-        result = CompleteUploadResponse(
+        response = CompleteUploadResponse(
             video_id=payload.video_id,
             upload_id=payload.upload_id,
         )
-
         return api_response(
-            data=jsonable_encoder(result),
+            data=jsonable_encoder(response),
             message="Upload completed successfully",
             code="UPLOAD_VIDEO_COMPLETED",
         )
