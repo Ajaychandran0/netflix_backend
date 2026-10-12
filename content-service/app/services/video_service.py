@@ -18,8 +18,10 @@ from app.schemas.video import (
     VideoSummary,
     UploadStatusSummary,
     VideoUpdateRequest,
+    VideoProgressResponse,
 )
 from app.schemas.user import UserContext
+from app.core.redis_client import redis_client
 
 
 class VideoService:
@@ -152,6 +154,7 @@ class VideoService:
             .where(Video.user_id == user_id, Video.deleted_at.is_(None))
             .order_by(Video.created_at.desc())
         )
+
         result = await self.db.execute(statement)
 
         uploads = [
@@ -173,6 +176,65 @@ class VideoService:
             data=jsonable_encoder(uploads),
             message="Your uploads retrieved successfully",
             code="LIST_USER_UPLOADS_SUCCESS",
+        )
+
+    async def get_user_video_progress(
+        self,
+        *,
+        video_id: UUID,
+        user_id: UUID,
+    ) -> VideoProgressResponse:
+        result = await self.db.execute(
+            select(Video).where(
+                Video.id == video_id,
+                Video.user_id == user_id,
+                Video.deleted_at.is_(None),
+            )
+        )
+        video = result.scalar_one_or_none()
+        if video is None:
+            raise HTTPException(status_code=404, detail="Video not found.")
+
+        progress_key = (
+            f"video:progress:{video_id}:{video.processing_attempt_id}"
+            if video.processing_attempt_id
+            else f"video:progress:{video_id}"
+        )
+        live = await redis_client.hgetall(progress_key)
+        if video.status in {VideoStatus.QUEUED, VideoStatus.PROCESSING}:
+            try:
+                live_status = VideoStatus(live.get("status", video.status.value))
+            except ValueError:
+                live_status = video.status
+        else:
+            # Database terminal state is authoritative if an old worker left a
+            # non-terminal Redis hash behind.
+            live_status = video.status
+        try:
+            progress = int(float(live.get("progress", 0)))
+        except (TypeError, ValueError):
+            progress = 0
+        if live_status == VideoStatus.COMPLETED:
+            progress = 100
+
+        updated_at = None
+        if live.get("updated_at"):
+            try:
+                updated_at = datetime.fromisoformat(live["updated_at"])
+            except ValueError:
+                updated_at = None
+
+        data = VideoProgressResponse(
+            video_id=video.id,
+            status=live_status,
+            stage=live.get("stage") or video.current_stage,
+            progress=max(0, min(progress, 100)),
+            updated_at=updated_at,
+        )
+        return api_response(
+            data=jsonable_encoder(data),
+            message="Video progress retrieved successfully",
+            code="GET_VIDEO_PROGRESS_SUCCESS",
         )
 
 
